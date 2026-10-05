@@ -1,0 +1,10 @@
+{
+  "name": "vehicle-request-guide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FiveM custom vehicle request guide — static single-page site.",
+  "scripts": {
+    "start": "npx --yes serve . -p 5500",
+    "dev": "npx --yes live-server --port=5500"
+  }
+}
