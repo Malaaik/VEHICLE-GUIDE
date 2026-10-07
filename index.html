@@ -50,6 +50,10 @@ p.lead{color:var(--sub); font-size:15px; line-height:1.5; margin:0 0 22px;}
 .card:hover,.card.selected{border-color:var(--accent);}
 .card h3{margin:0 0 4px; font-size:17px;}
 .card p{margin:0; color:var(--sub); font-size:13px; line-height:1.4;}
+.card.disabled{cursor:not-allowed; background:var(--panel2);}
+.card.disabled h3,.card.disabled p{opacity:.55;}
+.card.disabled:hover{border-color:var(--line);}
+.card .na{display:inline-block; margin-top:10px; font-size:12px; font-weight:700; color:var(--accent);}
 .rule-list{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:6px 20px;}
 .rule-list li{padding:14px 0; border-bottom:1px solid var(--line); color:var(--sub); font-size:14px; line-height:1.5;}
 .rule-list li:last-child{border-bottom:none;}
@@ -83,6 +87,30 @@ textarea{min-height:90px; resize:vertical;}
 .upload-box.has-img{border-color:var(--good); padding:10px;}
 .upload-box img{max-width:100%; max-height:220px; border-radius:8px; display:block; margin:0 auto;}
 #fileInput{display:none;}
+.info-modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:50; overflow-y:auto; padding:24px 16px;}
+.info-modal.show{display:block;}
+.info-card{max-width:720px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+.info-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.info-head h2{margin:0;}
+.info-intro{color:var(--sub); font-size:13.5px; line-height:1.55; margin:0 0 6px;}
+.info-group h3{font-size:14px; color:var(--accent); margin:22px 0 4px;}
+.info-fig{margin:12px 0 0;}
+.info-fig img{width:100%; display:block; border-radius:10px; border:1px solid var(--line); background:#3f3f3f; cursor:zoom-in;}
+.info-fig figcaption{font-size:12px; color:var(--sub); margin-top:6px;}
+.brand-row{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:8px;}
+.brand-row b{font-size:14px; color:var(--txt);}
+.brand-row ul{margin:6px 0 0; padding-left:18px;}
+.brand-row li{color:var(--sub); font-size:12.5px; line-height:1.5; margin-bottom:3px;}
+.info-links{margin-top:18px; display:flex; flex-direction:column; gap:6px;}
+.info-links a{color:var(--accent2); font-size:13px; font-weight:600;}
+.lightbox{position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; z-index:60; align-items:center; justify-content:center; padding:12px; cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:100%; max-height:100%; object-fit:contain;}
+.ref-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;}
+.ref-slot label{margin:0; font-size:12.5px; color:var(--txt); font-weight:600;}
+.ref-slot .req{color:var(--accent);}
+.ref-slot .upload-box{margin-top:6px;}
+.ref-slot .upload-box img{max-height:110px;}
 .proof-item{margin-top:20px;}
 .proof-item label{margin:0 0 4px; color:var(--txt); font-weight:600;}
 .proof-item .req{color:var(--accent);}
@@ -146,7 +174,7 @@ textarea{min-height:90px; resize:vertical;}
         <li>Collision must closely match the vehicle mesh in a box-like manner.</li>
         <li>Major impact areas must use flat, straight collision surfaces.</li>
         <li>Low LOD collision must be a low detailed duplicate of the chassis collision.</li>
-        <li>Bulletproof tyres are prohibited.</li>
+        <li>Bulletproof tyres are prohibited, and wheels must be scaled realistically.</li>
         <li>Unrealistic extensions with collisions are prohibited.</li>
       </ul>
     </div>
@@ -261,12 +289,9 @@ textarea{min-height:90px; resize:vertical;}
     <label>Description / notes for staff</label>
     <textarea id="vDesc" placeholder="Anything staff should know — door mechanism, special features, intended owner..."></textarea>
 
-    <label>Reference image</label>
-    <div class="upload-box" id="uploadBox" onclick="document.getElementById('fileInput').click()">
-      <div id="uploadPrompt">Tap to upload a reference image</div>
-      <img id="uploadPreview" style="display:none;">
-    </div>
-    <input type="file" id="fileInput" accept="image/*">
+    <label>Reference images (orthographic views)</label>
+    <div class="proof-hint">Upload one orthographic reference image for each view. All four are required.</div>
+    <div class="ref-grid" id="refGrid"></div>
 
     <div class="btn-row">
       <button class="btn secondary" onclick="backFromForm()">Back</button>
@@ -295,6 +320,14 @@ textarea{min-height:90px; resize:vertical;}
   </section>
 
 </div>
+
+<div class="info-modal" id="infoModal" onclick="if(event.target===this) closeInfo()">
+  <div class="info-card">
+    <div class="info-head"><h2 id="infoTitle"></h2><button class="btn-sm" onclick="closeInfo()">Close</button></div>
+    <div id="infoBody"></div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" alt=""></div>
 
 <div id="toast"></div>
 
@@ -484,7 +517,8 @@ const HANDLING_META = {
 // Submission types. Escrowed files can't be opened by staff, so they need proof screenshots.
 const SUBMISSION = {
   nonescrowed: { label: "Non-escrowed", desc: "Your files are unprotected and staff can open and inspect them directly." },
-  escrowed:    { label: "Escrowed", desc: "Your files are protected so staff can't open them. You'll upload proof screenshots (collision, polygon count, etc.) to show the vehicle meets the guidelines." }
+  escrowed:    { label: "Escrowed", available: false, // set to true (or remove) to re-enable escrowed submissions
+                 desc: "Your files are protected so staff can't open them. You'll upload proof screenshots (collision, polygon count, etc.) to show the vehicle meets the guidelines." }
 };
 
 // Proof screenshots required for escrowed submissions. Edit this list to add/remove items.
@@ -499,7 +533,7 @@ const PROOFS = [
   { key:'extra',     label:'Additional proof (optional)', hint:'Anything else staff should see.', required:false }
 ];
 
-let state = { type:null, cls:null, sub:null, imgData:null, proofs:{} };
+let state = { type:null, cls:null, sub:null, refs:{}, proofs:{} };
 
 // Display name for a class, e.g. "Off Road (4x4)" under Gang Vehicle.
 function classLabel(key, typeKey){
@@ -508,14 +542,356 @@ function classLabel(key, typeKey){
   return suffix ? `${base} ${suffix}` : base;
 }
 
-// Wire each guideline section's "More info" link to GUIDE_LINKS.
-// Until a real URL is filled in (still "#"), the link is shown disabled
-// instead of pointing nowhere.
+// "More info" content per guideline section. Sections listed here open an in-page
+// preview (text + screenshots + optional links). Add more keys the same way
+// (lore, optimization, collision, functionality, meta, hierarchy, appearance).
+// Put image files in the images/ folder and reference them by relative path.
+const GUIDE_INFO = {
+  lore: {
+    "title": "Lore-friendliness — signature parts to change",
+    "intro": "All real-world badges and branding must be removed. Beyond that, if your design uses any signature part of a real brand listed below, change it meaningfully: different proportions, a different motif, a different count or pattern. Keep the general design category (for example, a vertical-slat grille) but not the exact signature. That is the difference between homage and copy.",
+    "groups": [
+      {
+        "heading": "Ultra-luxury",
+        "rows": [
+          {
+            "brand": "Rolls-Royce",
+            "items": [
+              "Grille: Pantheon grille — tall, narrow, rounded top corners, vertical slats",
+              "Lights: split headlight, thin LED strip above a round lamp",
+              "Other: Spirit of Ecstasy hood ornament, coach (suicide) doors"
+            ]
+          },
+          {
+            "brand": "Bentley",
+            "items": [
+              "Grille: matrix mesh with a bold vertical center bar",
+              "Lights: quad round/oval headlights",
+              "Other: diamond-quilted interior stitching"
+            ]
+          },
+          {
+            "brand": "Bugatti",
+            "items": [
+              "Grille: horseshoe-shaped opening",
+              "Lights: X-shaped taillight cluster",
+              "Other: central spine line down hood/roof/trunk"
+            ]
+          },
+          {
+            "brand": "Maserati",
+            "items": [
+              "Grille: oval grille with vertical slats",
+              "Other: boomerang-shaped C-pillar vent"
+            ]
+          },
+          {
+            "brand": "Aston Martin",
+            "items": [
+              "Grille: wide trapezoidal vane grille",
+              "Other: side strake gills behind the front wheel"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Luxury / premium",
+        "rows": [
+          {
+            "brand": "Mercedes-Benz",
+            "items": [
+              "Grille: diamond-block pattern (sport) or vertical slats (classic); star-pattern grille on EVs",
+              "Lights: eyebrow LED DRL shape; star-shaped light clusters",
+              "Other: three-pointed star placement"
+            ]
+          },
+          {
+            "brand": "BMW",
+            "items": [
+              "Grille: twin kidney grille",
+              "Lights: angel-eye ring DRLs",
+              "Other: Hofmeister kink (C-pillar notch)"
+            ]
+          },
+          {
+            "brand": "Audi",
+            "items": [
+              "Grille: singleframe hexagonal grille",
+              "Lights: angular LED DRL strips, sequential turn signals"
+            ]
+          },
+          {
+            "brand": "Lexus",
+            "items": [
+              "Grille: spindle grille — aggressive hourglass shape",
+              "Lights: arrow-head DRL signature"
+            ]
+          },
+          {
+            "brand": "Genesis",
+            "items": [
+              "Grille: crest grille — two parallel horizontal lines",
+              "Lights: two-line split lighting (quad lamps divided into thin bars)",
+              "Other: G-Matrix grille texture"
+            ]
+          },
+          {
+            "brand": "Cadillac",
+            "items": [
+              "Grille: vertical slat theme",
+              "Lights: vertical LED signature, headlight and taillight"
+            ]
+          },
+          {
+            "brand": "Lincoln",
+            "items": [
+              "Grille: horizontal split-wing chrome bar",
+              "Lights: full-width horizontal light bar",
+              "Other: coach doors on special editions"
+            ]
+          },
+          {
+            "brand": "Jaguar",
+            "items": [
+              "Grille: mesh grille with chrome surround",
+              "Lights: J-blade LED DRL shape"
+            ]
+          },
+          {
+            "brand": "Land Rover / Range Rover",
+            "items": [
+              "Grille: minimal horizontal slats",
+              "Lights: split (upper/lower) taillight",
+              "Other: floating roofline, clamshell hood"
+            ]
+          },
+          {
+            "brand": "Volvo",
+            "items": [
+              "Grille: vertical slat layout",
+              "Lights: Thor's Hammer LED DRL shape"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Performance / sports",
+        "rows": [
+          {
+            "brand": "Ferrari",
+            "items": [
+              "Grille: oval/triangular opening",
+              "Lights: dual round taillights (model-dependent)"
+            ]
+          },
+          {
+            "brand": "Lamborghini",
+            "items": [
+              "Grille: hexagonal theme throughout",
+              "Lights: Y-shaped headlight/taillight motif",
+              "Other: hexagonal air intakes"
+            ]
+          },
+          {
+            "brand": "Porsche",
+            "items": [
+              "Grille: minimal/no traditional grille on the 911",
+              "Lights: round frog-eye headlights; full-width horizontal light bar taillight",
+              "Other: whale-tail spoiler (Turbo)"
+            ]
+          },
+          {
+            "brand": "McLaren",
+            "items": [
+              "Grille: low, wide opening",
+              "Lights: curved eye-socket LED DRL"
+            ]
+          },
+          {
+            "brand": "Alfa Romeo",
+            "items": [
+              "Grille: triangular scudetto shield shape"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Mainstream / volume",
+        "rows": [
+          {
+            "brand": "Ford (Mustang)",
+            "items": [
+              "Lights: three-bar taillight signature"
+            ]
+          },
+          {
+            "brand": "Dodge",
+            "items": [
+              "Grille: crosshair grille (historic)",
+              "Lights: full-width racetrack LED taillight (modern Charger/Challenger)"
+            ]
+          },
+          {
+            "brand": "Jeep",
+            "items": [
+              "Grille: seven-slot grille",
+              "Other: trapezoidal wheel arches"
+            ]
+          },
+          {
+            "brand": "Chevrolet",
+            "items": [
+              "Grille: bowtie-centered split grille",
+              "Lights: split/quad taillight theme (Corvette)"
+            ]
+          },
+          {
+            "brand": "Mitsubishi",
+            "items": [
+              "Grille: Dynamic Shield layered front fascia"
+            ]
+          },
+          {
+            "brand": "Hyundai",
+            "items": [
+              "Grille: parametric jewel-pattern grille texture"
+            ]
+          },
+          {
+            "brand": "Kia",
+            "items": [
+              "Grille: tiger-nose grille shape",
+              "Lights: boomerang-shaped headlight/taillight signature"
+            ]
+          },
+          {
+            "brand": "Mazda",
+            "items": [
+              "Lights: C-shaped through-taillight with matching DRL"
+            ]
+          },
+          {
+            "brand": "Pontiac (historic)",
+            "items": [
+              "Grille: split grille"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Electric-era note",
+        "note": "Lighting signature is now the main brand identifier, especially on EVs that don't need a traditional grille (for example, a minimal/no grille with a full-width light bar front and rear). For any EV-styled vehicle, the light shape is the single most important thing to alter."
+      }
+    ],
+    "links": []
+  },
+  collision: {
+    title: "Collision — examples",
+    intro: "Reference screenshots of a correct collision setup. Collision is built from simple, box-like shapes that follow the vehicle mesh, and the Low LOD collision is a low detailed duplicate of the chassis collision. Tap an image to enlarge it.",
+    groups: [
+      { heading: "Chassis collision (chassis.col)", note: "Box-like collision following the body mesh.", images: [
+        { src: "images/collision/chassis-left.png",  caption: "chassis.col — left view" },
+        { src: "images/collision/chassis-front.png", caption: "chassis.col — front view" },
+        { src: "images/collision/chassis-back.png",  caption: "chassis.col — back view" },
+        { src: "images/collision/chassis-top.png",   caption: "chassis.col — top view" }
+      ]},
+      { heading: "Low LOD collision (chassis_lowlod.col)", note: "A low detailed duplicate of the chassis collision.", images: [
+        { src: "images/collision/chassis-lowlod.png", caption: "chassis_lowlod.col — left view" }
+      ]},
+      { heading: "Body parts", images: [
+        { src: "images/collision/bonnet.png", caption: "bonnet.col — top view" },
+        { src: "images/collision/boot.png",   caption: "boot — front view" },
+        { src: "images/collision/door.png",   caption: "door_dside_r.col" }
+      ]},
+      { heading: "Wheels & other", images: [
+        { src: "images/collision/wheel-lf-col.png",   caption: "wheel_lf.col" },
+        { src: "images/collision/wheel-lf-child.png", caption: "wheel_lf.child" },
+        { src: "images/collision/chassis-dummy.png",  caption: "chassis_dummy.col — left view" }
+      ]}
+    ],
+    links: [] // e.g. [{ label: "Collision tutorial", url: "https://..." }]
+  },
+  optimization: {
+    title: "Optimization — examples",
+    intro: "Reference screenshots showing how to check your vehicle against the optimization limits: maximum polygon count 400,000, and a maximum of 32 MiB per .yft and .ytd. Tap an image to enlarge it.",
+    groups: [
+      { heading: "Polygon count", note: "The model viewer shows the total polygons and vertices. The total must stay under 400,000 polygons.", images: [
+        { src: "images/optimization/polygon-count.png", caption: "Model viewer — polygon and vertex count" }
+      ]},
+      { heading: "File size (.yft / .ytd)", note: "The FiveM console reports the memory each asset uses when the resource loads, including the _hi.yft. Each .yft and .ytd must stay within 32 MiB.", images: [
+        { src: "images/optimization/asset-memory.png", caption: "FiveM console — .yft, .ytd and _hi.yft memory usage" }
+      ]}
+    ],
+    links: []
+  }
+};
+
+function openInfo(key){
+  const info = GUIDE_INFO[key];
+  if(!info) return;
+  document.getElementById('infoTitle').textContent = info.title || 'More info';
+  const body = document.getElementById('infoBody');
+  body.innerHTML = '';
+  if(info.intro){
+    const p = document.createElement('p'); p.className = 'info-intro'; p.textContent = info.intro; body.appendChild(p);
+  }
+  (info.groups || []).forEach(g=>{
+    const d = document.createElement('div'); d.className = 'info-group';
+    const h = document.createElement('h3'); h.textContent = g.heading; d.appendChild(h);
+    if(g.note){ const n = document.createElement('p'); n.className = 'info-intro'; n.textContent = g.note; d.appendChild(n); }
+    (g.rows || []).forEach(r=>{
+      const row = document.createElement('div'); row.className = 'brand-row';
+      const b = document.createElement('b'); b.textContent = r.brand; row.appendChild(b);
+      const ul = document.createElement('ul');
+      r.items.forEach(t=>{ const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      row.appendChild(ul); d.appendChild(row);
+    });
+    (g.images || []).forEach(im=>{
+      const f = document.createElement('figure'); f.className = 'info-fig'; f.style.margin = '12px 0 0';
+      const img = document.createElement('img'); img.src = im.src; img.alt = im.caption; img.loading = 'lazy';
+      img.onclick = ()=>openLightbox(im.src);
+      const c = document.createElement('figcaption'); c.textContent = im.caption;
+      f.appendChild(img); f.appendChild(c); d.appendChild(f);
+    });
+    body.appendChild(d);
+  });
+  if((info.links || []).length){
+    const box = document.createElement('div'); box.className = 'info-links';
+    info.links.forEach(l=>{
+      const a = document.createElement('a'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label + ' ↗';
+      box.appendChild(a);
+    });
+    body.appendChild(box);
+  }
+  const m = document.getElementById('infoModal');
+  m.classList.add('show'); m.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+function closeInfo(){
+  document.getElementById('infoModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function openLightbox(src){
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+  if(document.getElementById('lightbox').classList.contains('show')) closeLightbox(); else closeInfo();
+});
+
+// Wire each guideline section's "More info" link.
+// Priority: in-page GUIDE_INFO preview > external URL in GUIDE_LINKS > disabled "(soon)".
 function wireGuideLinks(){
-  Object.entries(GUIDE_LINKS).forEach(([key,url])=>{
+  Object.keys(GUIDE_LINKS).forEach(key=>{
     const a = document.getElementById(`link-${key}`);
     if(!a) return;
-    if(!url || url === '#'){
+    const url = GUIDE_LINKS[key];
+    if(GUIDE_INFO[key]){
+      a.removeAttribute('target'); a.href = '#';
+      a.onclick = e=>{ e.preventDefault(); openInfo(key); };
+    } else if(!url || url === '#'){
       a.classList.add('disabled');
       a.textContent = 'More info (soon)';
       a.removeAttribute('href');
@@ -584,9 +960,12 @@ function buildSubGrid(){
   grid.innerHTML = '';
   Object.entries(SUBMISSION).forEach(([key,val])=>{
     const c = document.createElement('div');
-    c.className = 'card';
-    c.innerHTML = `<h3>${val.label}</h3><p>${val.desc}</p>`;
-    c.onclick = ()=>{ state.sub = key; if(key === 'escrowed'){ buildProof(); goTo(6); } else { buildForm(); goTo(7); } };
+    const off = val.available === false;
+    c.className = 'card' + (off ? ' disabled' : '');
+    c.innerHTML = `<h3>${val.label}</h3><p>${val.desc}</p>` + (off ? '<span class="na">Currently unavailable</span>' : '');
+    if(!off){
+      c.onclick = ()=>{ state.sub = key; if(key === 'escrowed'){ buildProof(); goTo(6); } else { buildForm(); goTo(7); } };
+    }
     grid.appendChild(c);
   });
 }
@@ -661,26 +1040,53 @@ function checkProofReady(){
   document.getElementById('proofBtn').disabled = !PROOFS.every(p=>p.required === false || state.proofs[p.key]);
 }
 
-document.getElementById('fileInput').addEventListener('change', e=>{
-  const f = e.target.files[0];
-  if(!f) return;
-  const reader = new FileReader();
-  reader.onload = ev=>{
-    state.imgData = ev.target.result;
-    document.getElementById('uploadPrompt').style.display='none';
-    const img = document.getElementById('uploadPreview');
-    img.src = state.imgData;
-    img.style.display='block';
-    document.getElementById('uploadBox').classList.add('has-img');
-    checkReady();
-  };
-  reader.readAsDataURL(f);
-});
+
+// Orthographic reference views required on the submission form.
+const REF_VIEWS = [
+  { key:'front', label:'Front view' },
+  { key:'back',  label:'Back view' },
+  { key:'left',  label:'Left side view' },
+  { key:'top',   label:'Top view' }
+];
+
+function buildRefGrid(){
+  const grid = document.getElementById('refGrid');
+  grid.innerHTML = '';
+  REF_VIEWS.forEach(v=>{
+    const d = document.createElement('div');
+    d.className = 'ref-slot';
+    d.innerHTML = `<label>${v.label} <span class="req">*</span></label>
+      <div class="upload-box small"><div class="pprompt">Tap to upload</div><img class="pprev" style="display:none;"></div>
+      <input type="file" accept="image/*" style="display:none;">`;
+    grid.appendChild(d);
+    const box = d.querySelector('.upload-box'), inp = d.querySelector('input'),
+          prev = d.querySelector('img'), prompt = d.querySelector('.pprompt');
+    const show = ()=>{
+      if(state.refs[v.key]){
+        prev.src = state.refs[v.key]; prev.style.display = 'block';
+        prompt.style.display = 'none'; box.classList.add('has-img');
+      }
+    };
+    show();
+    box.onclick = ()=>inp.click();
+    inp.onchange = e=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = async ev=>{
+        state.refs[v.key] = await compressImage(ev.target.result);
+        show(); checkReady();
+      };
+      r.readAsDataURL(f);
+    };
+  });
+}
 
 function checkReady(){
   const name = document.getElementById('vName').value.trim();
-  document.getElementById('submitBtn').disabled = !(name && state.imgData);
+  document.getElementById('submitBtn').disabled = !(name && REF_VIEWS.every(v=>state.refs[v.key]));
 }
+
 document.getElementById('vName').addEventListener('input', checkReady);
 
 function showToast(msg){
@@ -695,119 +1101,30 @@ async function generatePdf(){
     const doc = new jsPDF();
     const typeLabel = TYPES[state.type].label;
     const name = document.getElementById('vName').value.trim();
-    const inspo = document.getElementById('vInspo').value.trim();
-    const desc = document.getElementById('vDesc').value.trim();
     let y = 20;
 
-    doc.setFontSize(20); doc.setFont(undefined,'bold');
-    doc.text(name || 'Custom Vehicle Request', 14, y); y+=10;
-    doc.setFontSize(12); doc.setFont(undefined,'normal'); doc.setTextColor(90,90,90);
-    doc.text(`${typeLabel}  •  ${classLabel(state.cls, state.type)} class`, 14, y); y+=7;
-    doc.text(`Submission type: ${SUBMISSION[state.sub].label}`, 14, y); y+=12;
-
+    // PDF contains only the vehicle class and the reference images.
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.text(`Vehicle Class: ${classLabel(state.cls, state.type)}`, 14, y); y+=8;
+    doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(90,90,90);
+    doc.text(typeLabel, 14, y); y+=12;
     doc.setTextColor(0,0,0);
 
-    const metaText = HANDLING_META[state.cls];
-    if(metaText){
-      if(y > 250){ doc.addPage(); y = 20; }
-      doc.setFont('helvetica','bold'); doc.setFontSize(13);
-      doc.text('handling.meta', 14, y); y+=7;
-      doc.setFont('courier','normal'); doc.setFontSize(8);
-      metaText.split('\n').forEach(line=>{
-        doc.splitTextToSize(line || ' ', 182).forEach(part=>{
-          if(y > 280){ doc.addPage(); y = 20; }
-          doc.text(part, 14, y); y+=3.6;
-        });
-      });
-      doc.setFont('helvetica','normal'); y+=6;
-    }
-
-    const guideSections = [
-      ['1. Lore-Friendliness', [
-        'All real-world branding and badges must be removed.',
-        'A lore-friendly brand and name must be used.',
-        'Signature visual features must be altered from the original design.',
-        'Vehicles must not appear as direct replicas of real-world vehicles.'
-      ]],
-      ['2. Optimization', [
-        'Maximum file size: 32 MiB per .yft and .ytd.',
-        'Maximum livery resolution: 2048 x 2048.',
-        'Maximum polygon count: 400,000.',
-        'Proper LODs are mandatory (minimum L0, L1, L2, L3, each optimized for distance).',
-        'Unnecessary metadata, geometry, materials, and textures must be removed.'
-      ]],
-      ['3. Collision', [
-        'Collision must closely match the vehicle mesh in a box-like manner.',
-        'Major impact areas must use flat, straight collision surfaces.',
-        'Low LOD collision must be a low detailed duplicate of the chassis collision.',
-        'Bulletproof tyres are prohibited.',
-        'Unrealistic extensions with collisions are prohibited.'
-      ]],
-      ['4. Functionality', [
-        'All vehicle parts must function correctly.',
-        'No floating, detached, or improperly rigged parts.'
-      ]],
-      ['5. Meta Files', [
-        'Only standard gameplay flags are permitted.',
-        'Vehicles must use proper GTA layouts.',
-        'Maximum LOD distance: 350.0.',
-        'Server-provided handling must be used as the base.',
-        'Custom engine sounds may be used; extremely loud sounds are prohibited.'
-      ]],
-      ['6. Hierarchy & Nodes', [
-        "Vehicles must follow Rockstar's hierarchy structure.",
-        'All required nodes and bones must be correctly positioned.',
-        'Flying and submersible vehicles are not permitted.'
-      ]],
-      ['7. Appearance', [
-        'Glow effects limited to 30%.',
-        'All animations are prohibited.'
-      ]],
-    ];
-
-    doc.setFont(undefined,'bold'); doc.setFontSize(13);
-    doc.text('Custom Vehicle General Guidelines (for developers)', 14, y); y+=8;
-
-    guideSections.forEach(([title, items])=>{
-      if(y > 265){ doc.addPage(); y = 20; }
-      doc.setFont(undefined,'bold'); doc.setFontSize(11);
-      doc.text(title, 14, y); y+=6;
-      doc.setFont(undefined,'normal'); doc.setFontSize(10);
-      items.forEach(r=>{
-        if(y > 275){ doc.addPage(); y = 20; }
-        const lines = doc.splitTextToSize('• '+r, 178);
-        doc.text(lines, 16, y); y += lines.length*5+1;
-      });
-      y+=4;
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('Reference Images', 14, y); y+=8;
+    const cellW = 88, cellH = 78, gap = 8;
+    REF_VIEWS.forEach((v, i)=>{
+      const img = state.refs[v.key];
+      if(!img) return;
+      const x = 14 + (i % 2) * (cellW + gap);
+      const cy = y + Math.floor(i / 2) * (cellH + 16);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(v.label, x, cy);
+      const pr = doc.getImageProperties(img);
+      const sc = Math.min(cellW / pr.width, cellH / pr.height);
+      doc.addImage(img, 'JPEG', x, cy + 3, pr.width * sc, pr.height * sc);
     });
-
-    if(y > 255){ doc.addPage(); y = 20; }
-    doc.setFont(undefined,'bold'); doc.setFontSize(11);
-    doc.text('Final Approval', 14, y); y+=6;
-    doc.setFont(undefined,'normal'); doc.setFontSize(10);
-    const finalLines = doc.splitTextToSize('Any vehicle may be rejected if it causes performance issues, contains major visual defects, provides an unfair gameplay advantage, or fails to meet the above standards.', 180);
-    doc.text(finalLines, 14, y); y += finalLines.length*5+8;
-
-    if(inspo){ doc.setFont(undefined,'bold'); doc.setFontSize(11); doc.text('Reference basis:', 14, y); doc.setFont(undefined,'normal'); doc.text(inspo, 55, y); y+=8; }
-    if(desc){
-      doc.setFont(undefined,'bold'); doc.text('Notes:', 14, y); y+=6;
-      doc.setFont(undefined,'normal');
-      const lines = doc.splitTextToSize(desc, 180);
-      doc.text(lines, 14, y); y += lines.length*5+6;
-    }
-
-    if(state.imgData){
-      if(y > 210){ doc.addPage(); y = 20; }
-      doc.setFont(undefined,'bold'); doc.setFontSize(12);
-      doc.text('Reference Image', 14, y); y+=6;
-      const props = doc.getImageProperties(state.imgData);
-      const maxW = 180, maxH = 90;
-      let w = props.width, h = props.height;
-      const scale = Math.min(maxW/w, maxH/h);
-      w*=scale; h*=scale;
-      doc.addImage(state.imgData, 14, y, w, h);
-      y += h + 10;
-    }
+    y += 2 * (cellH + 16);
 
     if(state.sub === 'escrowed'){
       doc.addPage(); y = 20;
@@ -846,23 +1163,20 @@ async function generatePdf(){
 }
 
 function resetAll(){
-  state = { type:null, cls:null, sub:null, imgData:null, proofs:{} };
+  state = { type:null, cls:null, sub:null, refs:{}, proofs:{} };
   document.getElementById('vName').value='';
   document.getElementById('vInspo').value='';
   document.getElementById('vDesc').value='';
-  document.getElementById('uploadPrompt').style.display='block';
-  document.getElementById('uploadPreview').style.display='none';
-  document.getElementById('uploadBox').classList.remove('has-img');
-  document.getElementById('fileInput').value='';
+  buildRefGrid();
   document.getElementById('submitBtn').disabled = true;
   goTo(0);
 }
 
 buildTypeGrid();
 buildSubGrid();
+buildRefGrid();
 wireGuideLinks();
 goTo(0);
 </script>
 </body>
 </html>
-
