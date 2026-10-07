@@ -152,7 +152,7 @@ textarea{min-height:90px; resize:vertical;}
       <ul>
         <li>All real-world branding and badges must be removed.</li>
         <li>A lore-friendly brand and name must be used.</li>
-        <li>Signature visual features must be altered from the original design.</li>
+        <li>At least 3 of the original brand's signature features must be changed (for example lights, grille and interior).</li>
         <li>Vehicles must not appear as direct replicas of real-world vehicles.</li>
       </ul>
     </div>
@@ -549,7 +549,7 @@ function classLabel(key, typeKey){
 const GUIDE_INFO = {
   lore: {
     "title": "Lore-friendliness — signature parts to change",
-    "intro": "All real-world badges and branding must be removed. Beyond that, if your design uses any signature part of a real brand listed below, change it meaningfully: different proportions, a different motif, a different count or pattern. Keep the general design category (for example, a vertical-slat grille) but not the exact signature. That is the difference between homage and copy.",
+    "intro": "All real-world badges and branding must be removed. Beyond that, if your design is based on a real brand, at least 3 of that brand's signature features must be changed (for example lights, grille and interior), using the brands listed below as a reference (each brand lists at least 3 signature features). Change each one meaningfully: different proportions, a different motif, a different count or pattern. Keep the general design category (for example, a vertical-slat grille) but not the exact signature. That is the difference between homage and copy.",
     "groups": [
       {
         "heading": "Ultra-luxury",
@@ -582,14 +582,16 @@ const GUIDE_INFO = {
             "brand": "Maserati",
             "items": [
               "Grille: oval grille with vertical slats",
-              "Other: boomerang-shaped C-pillar vent"
+              "Other: boomerang-shaped C-pillar vent",
+              "Other: three side vents on the front fender (Quattroporte-style)"
             ]
           },
           {
             "brand": "Aston Martin",
             "items": [
               "Grille: wide trapezoidal vane grille",
-              "Other: side strake gills behind the front wheel"
+              "Other: side strake gills behind the front wheel",
+              "Other: swan-wing (upward-angled) doors"
             ]
           }
         ]
@@ -617,14 +619,16 @@ const GUIDE_INFO = {
             "brand": "Audi",
             "items": [
               "Grille: singleframe hexagonal grille",
-              "Lights: angular LED DRL strips, sequential turn signals"
+              "Lights: angular LED DRL strips, sequential turn signals",
+              "Interior: Virtual Cockpit full-digital instrument display"
             ]
           },
           {
             "brand": "Lexus",
             "items": [
               "Grille: spindle grille — aggressive hourglass shape",
-              "Lights: arrow-head DRL signature"
+              "Lights: arrow-head DRL signature",
+              "Lights: full-width rear light bar (recent models)"
             ]
           },
           {
@@ -639,7 +643,8 @@ const GUIDE_INFO = {
             "brand": "Cadillac",
             "items": [
               "Grille: vertical slat theme",
-              "Lights: vertical LED signature, headlight and taillight"
+              "Lights: vertical LED signature, headlight and taillight",
+              "Other: tailfin-inspired vertical rear end (historic fins)"
             ]
           },
           {
@@ -654,7 +659,8 @@ const GUIDE_INFO = {
             "brand": "Jaguar",
             "items": [
               "Grille: mesh grille with chrome surround",
-              "Lights: J-blade LED DRL shape"
+              "Lights: J-blade LED DRL shape",
+              "Other: pronounced rear haunches over the wheels"
             ]
           },
           {
@@ -669,7 +675,8 @@ const GUIDE_INFO = {
             "brand": "Volvo",
             "items": [
               "Grille: vertical slat layout",
-              "Lights: Thor's Hammer LED DRL shape"
+              "Lights: Thor's Hammer LED DRL shape",
+              "Lights: tall vertical taillights running up the rear pillar"
             ]
           }
         ]
@@ -681,7 +688,8 @@ const GUIDE_INFO = {
             "brand": "Ferrari",
             "items": [
               "Grille: oval/triangular opening",
-              "Lights: dual round taillights (model-dependent)"
+              "Lights: dual round taillights (model-dependent)",
+              "Interior: steering-wheel-mounted manettino dial and start button"
             ]
           },
           {
@@ -704,13 +712,16 @@ const GUIDE_INFO = {
             "brand": "McLaren",
             "items": [
               "Grille: low, wide opening",
-              "Lights: curved eye-socket LED DRL"
+              "Lights: curved eye-socket LED DRL",
+              "Other: dihedral (upward-swinging) doors"
             ]
           },
           {
             "brand": "Alfa Romeo",
             "items": [
-              "Grille: triangular scudetto shield shape"
+              "Grille: triangular scudetto shield shape",
+              "Lights: 3+3 LED headlight signature (Giulia/Stelvio)",
+              "Interior: deep-set twin round gauge cluster ('telescope' style)"
             ]
           }
         ]
@@ -721,59 +732,73 @@ const GUIDE_INFO = {
           {
             "brand": "Ford (Mustang)",
             "items": [
-              "Lights: three-bar taillight signature"
+              "Lights: three-bar taillight signature",
+              "Grille: low, wide trapezoid shark-nose grille",
+              "Other: sculpted side scoop behind the doors"
             ]
           },
           {
             "brand": "Dodge",
             "items": [
               "Grille: crosshair grille (historic)",
-              "Lights: full-width racetrack LED taillight (modern Charger/Challenger)"
+              "Lights: full-width racetrack LED taillight (modern Charger/Challenger)",
+              "Other: power-bulge hood with hood scoops (Challenger)"
             ]
           },
           {
             "brand": "Jeep",
             "items": [
               "Grille: seven-slot grille",
-              "Other: trapezoidal wheel arches"
+              "Other: trapezoidal wheel arches",
+              "Lights: round headlights (Wrangler)"
             ]
           },
           {
             "brand": "Chevrolet",
             "items": [
               "Grille: bowtie-centered split grille",
-              "Lights: split/quad taillight theme (Corvette)"
+              "Lights: split/quad taillight theme (Corvette)",
+              "Interior: dual-cockpit layout with wraparound console (Corvette)"
             ]
           },
           {
             "brand": "Mitsubishi",
             "items": [
-              "Grille: Dynamic Shield layered front fascia"
+              "Grille: Dynamic Shield layered front fascia",
+              "Lights: split headlight arrangement with upper DRL strip and lower main lamps",
+              "Other: bonnet air vent (Lancer Evolution heritage)"
             ]
           },
           {
             "brand": "Hyundai",
             "items": [
-              "Grille: parametric jewel-pattern grille texture"
+              "Grille: parametric jewel-pattern grille texture",
+              "Lights: parametric pixel lamp signature (Ioniq 5/6)",
+              "Lights: daytime running lights hidden inside the grille (Tucson, Elantra)"
             ]
           },
           {
             "brand": "Kia",
             "items": [
               "Grille: tiger-nose grille shape",
-              "Lights: boomerang-shaped headlight/taillight signature"
+              "Lights: boomerang-shaped headlight/taillight signature",
+              "Lights: star-map LED signature (EV6/EV9)"
             ]
           },
           {
             "brand": "Mazda",
             "items": [
-              "Lights: C-shaped through-taillight with matching DRL"
+              "Lights: C-shaped through-taillight with matching DRL",
+              "Grille: wide signature-wing grille flowing into the headlights",
+              "Interior: minimal driver-focused dash with rotary commander knob"
             ]
           },
           {
             "brand": "Pontiac (historic)",
             "items": [
-              "Grille: split grille"
+              "Grille: split grille",
+              "Lights: hidden pop-up headlights (Firebird/Trans Am)",
+              "Other: shaker hood scoop (Trans Am)"
             ]
           }
         ]
