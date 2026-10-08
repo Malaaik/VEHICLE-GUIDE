@@ -338,7 +338,10 @@ const TYPES = {
   club:     { label: "Club Vehicle", desc: "Automotive club / enthusiast builds for sanctioned events." },
   gang:     { label: "Gang Vehicle", desc: "Vehicles affiliated with organized factions.",
               // Extra text shown in braces next to a class name, for this vehicle type only.
-              classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" } }
+              classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" },
+              // Only these classes can be requested for this vehicle type; every other class is shown as unavailable.
+              // Remove this line (or add class keys) to open more classes up.
+              availableClasses: ["OffRoad", "Commercial", "Helicopters"] }
 };
 
 // Master class list — the full real FiveM/GTA vehicleClass enum (23 classes). Shared across all 3 categories above.
@@ -537,7 +540,7 @@ let state = { type:null, cls:null, sub:null, refs:{}, proofs:{} };
 
 // Display name for a class, e.g. "Off Road (4x4)" under Gang Vehicle.
 function classLabel(key, typeKey){
-  const base = key.replace(/([A-Z])/g,' $1').trim();
+  const base = key.replace(/([a-z])([A-Z])/g,'$1 $2');
   const suffix = typeKey && TYPES[typeKey] && TYPES[typeKey].classSuffix && TYPES[typeKey].classSuffix[key];
   return suffix ? `${base} ${suffix}` : base;
 }
@@ -952,15 +955,22 @@ function buildTypeGrid(){
 }
 
 function buildClassGrid(){
-  const typeLabel = TYPES[state.type].label;
-  document.getElementById('classIntro').textContent = `All FiveM handling classes are available for a ${typeLabel.toLowerCase()} request — pick the one that matches your build.`;
+  const typeSpec = TYPES[state.type], typeLabel = typeSpec.label;
+  const allowed = typeSpec.availableClasses; // undefined = every class is available
+  const names = allowed ? allowed.map(k => classLabel(k, state.type)) : [];
+  document.getElementById('classIntro').textContent = allowed
+    ? `Only ${names.slice(0,-1).join(', ')} and ${names[names.length-1]} are currently available for a ${typeLabel.toLowerCase()} request. All other classes are unavailable for now.`
+    : `All FiveM handling classes are available for a ${typeLabel.toLowerCase()} request — pick the one that matches your build.`;
   const grid = document.getElementById('classGrid');
   grid.innerHTML = '';
-  Object.entries(CLASSES).forEach(([key,spec])=>{
+  let entries = Object.entries(CLASSES);
+  if(allowed) entries = allowed.filter(k=>CLASSES[k]).map(k=>[k,CLASSES[k]]).concat(entries.filter(([k])=>!allowed.includes(k))); // available first, in the listed order
+  entries.forEach(([key,spec])=>{
     const c = document.createElement('div');
-    c.className='card';
-    c.innerHTML = `<h3>${classLabel(key, state.type)}</h3><p>${spec.tag}</p>`;
-    c.onclick = ()=>{ state.cls=key; buildHandling(); goTo(4); };
+    const off = allowed && !allowed.includes(key);
+    c.className = 'card' + (off ? ' disabled' : '');
+    c.innerHTML = `<h3>${classLabel(key, state.type)}</h3><p>${spec.tag}</p>` + (off ? '<span class="na">Currently unavailable</span>' : '');
+    if(!off) c.onclick = ()=>{ state.cls=key; buildHandling(); goTo(4); };
     grid.appendChild(c);
   });
 }
