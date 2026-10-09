@@ -383,6 +383,77 @@ const GUIDE_LINKS = {
   appearance: "#"
 };
 
+// Standard handling.meta for civilian and club vehicles — used for every 4-wheel and 6-wheel class below.
+// Gang vehicles keep their own per-class files in HANDLING_META.
+const WHEELED_CLASSES = ["Compacts","Sedans","SUVs","Coupes","Muscle","SportsClassics","Sports","Super","OffRoad","Industrial","Utility","Vans","Service","Emergency","Military","Commercial","OpenWheel"];
+const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
+<CHandlingDataMgr>
+  <HandlingData>
+     <Item type="CHandlingData">
+      <handlingName>x</handlingName> <!--recommended to adjust min-max values based on class-->
+      <fMass value="1500" /> <!--max-->
+      <fDownforceModifier value="1" /> <!--max-->
+      <fInitialDragCoeff value="5" /> <!--top speed limited to 220 km/hr-->
+      <fPercentSubmerged value="85" />
+      <vecCentreOfMassOffset x="0" y="0.0" z="0" />
+      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <fDriveBiasFront value="0" />
+      <nInitialDriveGears value="6" /> <!--max-->
+      <fInitialDriveForce value="0.2" /> <!--max-->
+      <fDriveInertia value="1" /> <!--max-->
+      <fClutchChangeRateScaleUpShift value="2" />
+      <fClutchChangeRateScaleDownShift value="2" />
+      <fInitialDriveMaxFlatVel value="150" />
+      <fBrakeForce value="0.75" /> <!--max-->
+      <fBrakeBiasFront value="0.5" />
+      <fHandBrakeForce value="0.75" /> <!--max-->
+      <fSteeringLock value="35.0" /> <!--max-->
+      <fTractionCurveMax value="3.3" /> <!--max-->
+      <fTractionCurveMin value="3.3" /> <!--max-->
+      <fTractionCurveLateral value="22.5" /> 
+      <fTractionSpringDeltaMax value="0.15" /> <!--fixed-->
+      <fLowSpeedTractionLossMult value="1.2" /> <!--min-->
+      <fCamberStiffnesss value="0.00" /> <!--fixed-->
+      <fTractionBiasFront value="0.5" />
+      <fTractionLossMult value="1.2" /> <!--min-->
+      <fSuspensionForce value="2.5" />
+      <fSuspensionCompDamp value="2.1" />
+      <fSuspensionReboundDamp value="2.1" />
+      <fSuspensionUpperLimit value="0.12" />
+      <fSuspensionLowerLimit value="-0.12" />
+      <fSuspensionRaise value="0" />
+      <fSuspensionBiasFront value="0.5" />
+      <fAntiRollBarForce value="1" /> <!--max-->
+      <fAntiRollBarBiasFront value="0.5" />
+      <fRollCentreHeightFront value="0.3" />
+      <fRollCentreHeightRear value="0.3" />
+      <fCollisionDamageMult value="1.5" /> <!--min-->
+      <fWeaponDamageMult value="1.5" /> <!--min-->
+      <fDeformationDamageMult value="0" /> <!--min-->
+      <fEngineDamageMult value="1.5" /> <!--min-->
+      <fPetrolTankVolume value="60" /> <!--max-->
+      <fOilVolume value="6" /> <!--max-->
+      <fSeatOffsetDistX value="0" />
+      <fSeatOffsetDistY value="0" />
+      <fSeatOffsetDistZ value="0" />
+      <nMonetaryValue value="50000" /> <!--fixed-->
+      <strModelFlags>440010</strModelFlags> <!--fixed-->
+      <strHandlingFlags>800008</strHandlingFlags> <!--fixed-->
+      <strDamageFlags>0</strDamageFlags> <!--fixed-->
+      <AIHandling>AVERAGE</AIHandling> <!--fixed-->
+      <SubHandlingData>
+        <Item type="NULL" />
+        <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+</HandlingData>
+</CHandlingDataMgr>`;
+function getMeta(type, cls){
+  if(type !== 'gang' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_STANDARD;
+  return HANDLING_META[cls];
+}
+
 // handling.meta text per class (paste the real XML between the backticks).
 // Example:  Compacts: `<Item type="CHandlingData">...</Item>`,
 // Classes left out show a "coming soon" note instead.
@@ -978,7 +1049,7 @@ function buildClassGrid(){
 function buildHandling(){
   const typeLabel = TYPES[state.type].label;
   document.getElementById('handSummary').textContent = `${typeLabel} — ${classLabel(state.cls, state.type)}`;
-  const meta = HANDLING_META[state.cls];
+  const meta = getMeta(state.type, state.cls);
   document.getElementById('metaBox').style.display = meta ? 'block' : 'none';
   document.getElementById('metaBox').textContent = meta || '';
   document.getElementById('copyMetaBtn').style.display = meta ? 'inline-block' : 'none';
@@ -986,7 +1057,7 @@ function buildHandling(){
 }
 
 async function copyMeta(){
-  try{ await navigator.clipboard.writeText(HANDLING_META[state.cls] || ''); showToast('handling.meta copied'); }
+  try{ await navigator.clipboard.writeText(getMeta(state.type, state.cls) || ''); showToast('handling.meta copied'); }
   catch(e){ showToast('Could not copy — select the text and copy manually.'); }
 }
 
