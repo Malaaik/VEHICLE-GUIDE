@@ -334,8 +334,12 @@ textarea{min-height:90px; resize:vertical;}
 <script>
 // Vehicle categories — purely for request categorization, does NOT filter which classes are available.
 const TYPES = {
-  civilian: { label: "Civilian Vehicle", desc: "Everyday vehicles for the general public." },
-  club:     { label: "Club Vehicle", desc: "Automotive club / enthusiast builds for sanctioned events." },
+  civilian: { label: "Civilian Vehicle", desc: "Everyday vehicles for the general public.", classSuffix: { Commercial: "(6x6)" } },
+  club:     { label: "Club Vehicle", desc: "Automotive club / enthusiast builds for sanctioned events.", classSuffix: { Commercial: "(6x6)" } },
+  police:   { label: "Police Vehicle", desc: "Law enforcement vehicles. All classes are available.",
+              // 4x4 / 6x6 police vehicles use the gang 4x4 / 6x6 handling; every other class uses the standard handling.
+              classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" } },
+  medic:    { label: "Medic Vehicle", desc: "Medical and EMS vehicles. All classes are available." },
   gang:     { label: "Gang Vehicle", desc: "Vehicles affiliated with organized factions.",
               // Extra text shown in braces next to a class name, for this vehicle type only.
               classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" },
@@ -344,7 +348,7 @@ const TYPES = {
               availableClasses: ["OffRoad", "Commercial", "Helicopters"] }
 };
 
-// Master class list — the full real FiveM/GTA vehicleClass enum (23 classes). Shared across all 3 categories above.
+// Master class list — the full real FiveM/GTA vehicleClass enum (23 classes). Shared across all categories above.
 // Handling data lives in HANDLING_META below, not here.
 const CLASSES = {
   Compacts:       {tag:"Entry-level city cars"},
@@ -393,7 +397,7 @@ const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
       <handlingName>x</handlingName> <!--recommended to adjust min-max values based on class-->
       <fMass value="1500" /> <!--max-->
       <fDownforceModifier value="1" /> <!--max-->
-      <fInitialDragCoeff value="5" /> <!--top speed limited to 220 km/hr-->
+      <fInitialDragCoeff value="5.7" /> <!--top speed limited to 220 km/hr-->
       <fPercentSubmerged value="85" />
       <vecCentreOfMassOffset x="0" y="0.0" z="0" />
       <vecInertiaMultiplier x="1" y="1" z="1" />
@@ -449,7 +453,17 @@ const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
     </Item>
 </HandlingData>
 </CHandlingDataMgr>`;
+// Civilian / club 6x6 (Commercial class): standard handling with steering lock 40 and traction curve max/min 4.
+const HANDLING_META_STANDARD_6X6 = HANDLING_META_STANDARD
+  .replace('<fSteeringLock value="35.0" />','<fSteeringLock value="40.0" />')
+  .replace('<fTractionCurveMax value="3.3" />','<fTractionCurveMax value="4" />')
+  .replace('<fTractionCurveMin value="3.3" />','<fTractionCurveMin value="4" />');
+// Medic vehicles: standard handling with the top speed limit raised to 250 km/h (drag coefficient is free as long as top speed stays within the limit).
+const HANDLING_META_MEDIC = HANDLING_META_STANDARD.replace('top speed limited to 220 km/hr','top speed limited to 250 km/hr');
 function getMeta(type, cls){
+  if(type === 'medic' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_MEDIC;
+  if((type === 'civilian' || type === 'club') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
+  if(type === 'police' && (cls === 'OffRoad' || cls === 'Commercial')) return HANDLING_META[cls]; // same as gang 4x4 / 6x6
   if(type !== 'gang' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_STANDARD;
   return HANDLING_META[cls];
 }
