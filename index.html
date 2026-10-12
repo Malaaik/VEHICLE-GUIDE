@@ -460,10 +460,15 @@ const HANDLING_META_STANDARD_6X6 = HANDLING_META_STANDARD
   .replace('<fTractionCurveMin value="3.3" />','<fTractionCurveMin value="4" />');
 // Medic vehicles: standard handling with the top speed limit raised to 250 km/h (drag coefficient is free as long as top speed stays within the limit).
 const HANDLING_META_MEDIC = HANDLING_META_STANDARD.replace('top speed limited to 220 km/hr','top speed limited to 250 km/hr');
+// Police (all other classes): standard handling with suspension upper limit max 0.2 and lower limit min -0.2, like gang / police 4x4 and 6x6.
+const HANDLING_META_POLICE = HANDLING_META_STANDARD
+  .replace('<fSuspensionUpperLimit value="0.12" />','<fSuspensionUpperLimit value="0.2" /> <!--max-->')
+  .replace('<fSuspensionLowerLimit value="-0.12" />','<fSuspensionLowerLimit value="-0.2" /> <!--min-->');
 function getMeta(type, cls){
   if(type === 'medic' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_MEDIC;
   if((type === 'civilian' || type === 'club') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
   if(type === 'police' && (cls === 'OffRoad' || cls === 'Commercial')) return HANDLING_META[cls]; // same as gang 4x4 / 6x6
+  if(type === 'police' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_POLICE;
   if(type !== 'gang' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_STANDARD;
   return HANDLING_META[cls];
 }
@@ -506,8 +511,8 @@ const HANDLING_META = {
       <fSuspensionForce value="2.5" />
       <fSuspensionCompDamp value="1.5" />
       <fSuspensionReboundDamp value="1.5" />
-      <fSuspensionUpperLimit value="0.2" />
-      <fSuspensionLowerLimit value="-0.2" />
+      <fSuspensionUpperLimit value="0.2" /> <!--max-->
+      <fSuspensionLowerLimit value="-0.2" /> <!--min-->
       <fSuspensionRaise value="0" />
       <fSuspensionBiasFront value="0.5" />
       <fAntiRollBarForce value="1" /> <!--max-->
@@ -570,8 +575,8 @@ const HANDLING_META = {
       <fSuspensionForce value="2.5" />
       <fSuspensionCompDamp value="1.5" />
       <fSuspensionReboundDamp value="1.5" />
-      <fSuspensionUpperLimit value="0.2" />
-      <fSuspensionLowerLimit value="-0.2" />
+      <fSuspensionUpperLimit value="0.2" /> <!--max-->
+      <fSuspensionLowerLimit value="-0.2" /> <!--min-->
       <fSuspensionRaise value="0" />
       <fSuspensionBiasFront value="0.5" />
       <fAntiRollBarForce value="1" /> <!--max-->
