@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Custom Vehicle Request Guide</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0b0f17; --panel:#121826; --panel2:#182033; --line:#2a3650;
+  --txt:#e8edf7; --sub:#8ea0c2; --accent:#5aa7d4; --accent2:#4a6fa5;
+  --good:#5ac17e; --radius:14px;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){ --bg:#f2f4f9; --panel:#ffffff; --panel2:#eef1f8; --line:#d8dee9; --txt:#1a2030; --sub:#5a6680; }
+}
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0; background:var(--bg); color:var(--txt);
+  font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.wrap{max-width:720px; margin:0 auto; padding:24px 20px 60px;}
+.topbar{display:flex; align-items:center; gap:10px; padding:16px 20px; position:sticky; top:env(safe-area-inset-top,0px); background:var(--bg); border-bottom:1px solid var(--line); z-index:5;}
+.topbar .logo{font-weight:800; letter-spacing:.08em; color:var(--accent);}
+.progress{display:flex; gap:6px; margin-left:auto;}
+.progress span{width:8px; height:8px; border-radius:50%; background:var(--line);}
+.progress span.active{background:var(--accent);}
+.screen{display:none; animation:fade .25s ease;}
+.screen.show{display:block;}
+@keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+h1{font-size:clamp(26px,5vw,34px); margin:10px 0 6px;}
+h2{font-size:20px; margin:0 0 14px;}
+p.lead{color:var(--sub); font-size:15px; line-height:1.5; margin:0 0 22px;}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--accent); color:#1a1405; border:none; border-radius:10px;
+  padding:14px 22px; font-size:16px; font-weight:700; cursor:pointer; width:100%;
+}
+.btn.secondary{background:transparent; color:var(--txt); border:1px solid var(--line);}
+.btn:disabled{opacity:.4; cursor:not-allowed;}
+.btn-row{display:flex; gap:10px; margin-top:22px;}
+.btn-row .btn{width:auto; flex:1;}
+.card-grid{display:grid; gap:12px;}
+.card{
+  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+  padding:18px; cursor:pointer; transition:border-color .15s;
+}
+.card:hover,.card.selected{border-color:var(--accent);}
+.card h3{margin:0 0 4px; font-size:17px;}
+.card p{margin:0; color:var(--sub); font-size:13px; line-height:1.4;}
+.card.disabled{cursor:not-allowed; background:var(--panel2);}
+.card.disabled h3,.card.disabled p{opacity:.55;}
+.card.disabled:hover{border-color:var(--line);}
+.card .na{display:inline-block; margin-top:10px; font-size:12px; font-weight:700; color:var(--accent);}
+.rule-list{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:6px 20px;}
+.rule-list li{padding:14px 0; border-bottom:1px solid var(--line); color:var(--sub); font-size:14px; line-height:1.5;}
+.rule-list li:last-child{border-bottom:none;}
+.rule-list li b{color:var(--txt);}
+.guide-section{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:12px;}
+.guide-section h3{margin:0 0 10px; font-size:15px; color:var(--accent); display:flex; gap:8px; align-items:baseline; justify-content:space-between;}
+.guide-section h3 span{color:var(--sub); font-weight:400; font-size:13px;}
+.more-info{font-size:12px; font-weight:600; color:var(--accent2); text-decoration:none; white-space:nowrap;}
+.more-info:hover{text-decoration:underline;}
+.more-info.disabled{color:var(--sub); cursor:default; pointer-events:none; opacity:.6;}
+.guide-section ul{margin:0; padding-left:18px;}
+.guide-section li{color:var(--sub); font-size:13.5px; line-height:1.55; margin-bottom:6px;}
+.guide-section li:last-child{margin-bottom:0;}
+.final-approval{background:var(--panel2); border:1px solid var(--accent); border-radius:var(--radius); padding:16px 20px; margin-top:16px; font-size:13.5px; color:var(--sub); line-height:1.6;}
+.final-approval b{color:var(--txt); display:block; margin-bottom:6px; font-size:14px;}
+.spec-table{width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; margin:16px 0;}
+.spec-table td{padding:12px 16px; border-bottom:1px solid var(--line); font-size:14px;}
+.spec-table tr:last-child td{border-bottom:none;}
+.spec-table td:first-child{color:var(--sub); width:42%;}
+.spec-table td:last-child{font-weight:600;}
+label{display:block; font-size:13px; color:var(--sub); margin:16px 0 6px;}
+input[type=text],textarea{
+  width:100%; background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+  color:var(--txt); padding:12px 14px; font-size:15px; font-family:inherit;
+}
+textarea{min-height:90px; resize:vertical;}
+.upload-box{
+  border:2px dashed var(--line); border-radius:var(--radius); padding:26px; text-align:center;
+  color:var(--sub); cursor:pointer; margin-top:16px;
+}
+.upload-box.has-img{border-color:var(--good); padding:10px;}
+.upload-box img{max-width:100%; max-height:220px; border-radius:8px; display:block; margin:0 auto;}
+#fileInput{display:none;}
+.info-modal{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; z-index:50; overflow-y:auto; padding:24px 16px;}
+.info-modal.show{display:block;}
+.info-card{max-width:720px; margin:0 auto; background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); padding:20px;}
+.info-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px;}
+.info-head h2{margin:0;}
+.info-intro{color:var(--sub); font-size:13.5px; line-height:1.55; margin:0 0 6px;}
+.info-group h3{font-size:14px; color:var(--accent); margin:22px 0 4px;}
+.info-fig{margin:12px 0 0;}
+.info-fig img{width:100%; display:block; border-radius:10px; border:1px solid var(--line); background:#3f3f3f; cursor:zoom-in;}
+.info-fig figcaption{font-size:12px; color:var(--sub); margin-top:6px;}
+.brand-row{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:8px;}
+.brand-row b{font-size:14px; color:var(--txt);}
+.brand-row ul{margin:6px 0 0; padding-left:18px;}
+.brand-row li{color:var(--sub); font-size:12.5px; line-height:1.5; margin-bottom:3px;}
+.info-links{margin-top:18px; display:flex; flex-direction:column; gap:6px;}
+.info-links a{color:var(--accent2); font-size:13px; font-weight:600;}
+.lightbox{position:fixed; inset:0; background:rgba(0,0,0,.92); display:none; z-index:60; align-items:center; justify-content:center; padding:12px; cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:100%; max-height:100%; object-fit:contain;}
+.ref-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:8px;}
+.ref-slot label{margin:0; font-size:12.5px; color:var(--txt); font-weight:600;}
+.ref-slot .req{color:var(--accent);}
+.ref-slot .upload-box{margin-top:6px;}
+.ref-slot .upload-box img{max-height:110px;}
+.proof-item{margin-top:20px;}
+.proof-item label{margin:0 0 4px; color:var(--txt); font-weight:600;}
+.proof-item .req{color:var(--accent);}
+.proof-hint{font-size:12px; color:var(--sub); margin:0 0 6px; line-height:1.45;}
+.upload-box.small{padding:16px; margin-top:6px;}
+.meta-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:22px 0 8px;}
+.meta-head h3{margin:0; font-size:15px; color:var(--accent);}
+.btn-sm{background:transparent; color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 12px; font-size:12px; font-weight:600; cursor:pointer;}
+.meta-box{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:14px 16px; margin:0; font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; line-height:1.5; color:var(--txt); white-space:pre-wrap; word-break:break-word; max-height:340px; overflow:auto;}
+.meta-pending{background:var(--panel); border:1px dashed var(--line); border-radius:var(--radius); padding:22px 18px; text-align:center; color:var(--sub); font-size:13.5px; line-height:1.5;}
+.badge{display:inline-block; background:var(--panel2); border:1px solid var(--line); color:var(--accent); font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; margin-bottom:10px;}
+.success-icon{width:64px; height:64px; border-radius:50%; background:var(--good); color:#06230f; display:flex; align-items:center; justify-content:center; font-size:30px; margin:10px auto 18px;}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:var(--panel2); border:1px solid var(--line); padding:10px 18px; border-radius:10px; font-size:13px; opacity:0; transition:opacity .2s; pointer-events:none;}
+#toast.show{opacity:1;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">⚙ VEHICLE REQUESTS</div>
+  <div class="progress" id="progress"></div>
+</div>
+
+<div class="wrap">
+
+  <!-- SCREEN 0: LANDING -->
+  <section class="screen show" data-screen="0">
+    <h1>Need a custom vehicle?</h1>
+    <p class="lead">This guide walks you through our vehicle guidelines and handling rules, then generates a submission PDF with your reference image attached for staff review.</p>
+    <button class="btn" onclick="goTo(1)">I need a custom car</button>
+  </section>
+
+  <!-- SCREEN 1: GENERAL GUIDELINES -->
+  <section class="screen" data-screen="1">
+    <h2>Custom Vehicle General Guidelines <span style="color:var(--sub); font-weight:400; font-size:14px;">(for developers)</span></h2>
+
+    <div class="guide-section">
+      <h3>1. Lore-Friendliness <a class="more-info" href="#" id="link-lore" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>All real-world branding and badges must be removed.</li>
+        <li>A lore-friendly brand and name must be used.</li>
+        <li>At least 3 of the original brand's signature features must be changed (for example lights, grille and interior).</li>
+        <li>Vehicles must not appear as direct replicas of real-world vehicles.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>2. Optimization <a class="more-info" href="#" id="link-optimization" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>Maximum file size: 32 MiB per .yft and .ytd.</li>
+        <li>Maximum livery resolution: 2048 × 2048.</li>
+        <li>Maximum polygon count: 400,000. This will be soon updated to 300,000.</li>
+        <li>Proper LODs are mandatory (minimum of L0, L1, L2 and L3, each optimized for the respective distances).</li>
+        <li>Unnecessary metadata, geometry, materials, and textures must be removed.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>3. Collision <a class="more-info" href="#" id="link-collision" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>Collision must closely match the vehicle mesh in a box-like manner.</li>
+        <li>Major impact areas must use flat, straight collision surfaces.</li>
+        <li>Low LOD collision must be a low detailed duplicate of the chassis collision.</li>
+        <li>Bulletproof tyres are prohibited, and wheels must be scaled realistically.</li>
+        <li>Unrealistic extensions with collisions are prohibited.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>4. Functionality <a class="more-info" href="#" id="link-functionality" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>All vehicle parts must function correctly.</li>
+        <li>No floating, detached, or improperly rigged parts.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>5. Meta Files <a class="more-info" href="#" id="link-meta" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>Only standard gameplay flags are permitted.</li>
+        <li>Vehicles must use proper GTA layouts.</li>
+        <li>Maximum LOD distance: 350.0.</li>
+        <li>Server-provided handling must be used as the base.</li>
+        <li>Custom engine sounds may be used; however, extremely loud sounds are prohibited.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>6. Hierarchy &amp; Nodes <a class="more-info" href="#" id="link-hierarchy" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>Vehicles must follow Rockstar's hierarchy structure.</li>
+        <li>All required nodes and bones must be correctly positioned.</li>
+        <li>Flying and submersible vehicles are not permitted.</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <h3>7. Appearance <a class="more-info" href="#" id="link-appearance" target="_blank" rel="noopener">More info ↗</a></h3>
+      <ul>
+        <li>Glow effects limited to 30%.</li>
+        <li>All animations are prohibited.</li>
+      </ul>
+    </div>
+
+    <div class="final-approval">
+      <b>Final Approval</b>
+      Any vehicle may be rejected if it causes performance issues, contains major visual defects, provides an unfair gameplay advantage, or fails to meet the above standards.
+    </div>
+
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(0)">Back</button>
+      <button class="btn" onclick="goTo(2)">Continue</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: VEHICLE TYPE -->
+  <section class="screen" data-screen="2">
+    <h2>Choose a vehicle type</h2>
+    <p class="lead">This determines which handling classes are available to you.</p>
+    <div class="card-grid" id="typeGrid"></div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(1)">Back</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: VEHICLE CLASS -->
+  <section class="screen" data-screen="3">
+    <h2>Choose a class</h2>
+    <p class="lead" id="classIntro"></p>
+    <div class="card-grid" id="classGrid"></div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(2)">Back</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 4: FORM -->
+  <!-- SCREEN 4: HANDLING GUIDELINES -->
+  <section class="screen" data-screen="4">
+    <h2>Handling guidelines</h2>
+    <span class="badge" id="handSummary"></span>
+    <p class="lead">Your vehicle's handling must be based on the server-provided handling for this class.</p>
+    <div class="meta-head">
+      <h3>handling.meta</h3>
+      <button class="btn-sm" id="copyMetaBtn" onclick="copyMeta()" style="display:none;">Copy</button>
+    </div>
+    <pre class="meta-box" id="metaBox" style="display:none;"></pre>
+    <div class="meta-pending" id="metaPending">The handling.meta for this class will be added here soon.</div>
+
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(3)">Back</button>
+      <button class="btn" onclick="goTo(5)">Continue to submission</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 5: SUBMISSION TYPE -->
+  <section class="screen" data-screen="5">
+    <h2>How is your vehicle protected?</h2>
+    <p class="lead">Choose whether your vehicle files are escrowed. Escrowed files can't be opened by staff, so they require proof screenshots.</p>
+    <div class="card-grid" id="subGrid"></div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(4)">Back</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 7: FORM (final submission) -->
+  <section class="screen" data-screen="7">
+    <h2>Submission details</h2>
+    <span class="badge" id="selSummary"></span>
+
+    <label>Vehicle name</label>
+    <input type="text" id="vName" placeholder="e.g. Xlantis Sovereign">
+
+    <label>Real-world inspiration (internal reference only, optional)</label>
+    <input type="text" id="vInspo" placeholder="e.g. 90s executive sedan, widebody">
+
+    <label>Description / notes for staff</label>
+    <textarea id="vDesc" placeholder="Anything staff should know — door mechanism, special features, intended owner..."></textarea>
+
+    <label>Reference images (orthographic views)</label>
+    <div class="proof-hint">Upload one orthographic reference image for each view. All four are required.</div>
+    <div class="ref-grid" id="refGrid"></div>
+
+    <div class="btn-row">
+      <button class="btn secondary" onclick="backFromForm()">Back</button>
+      <button class="btn" id="submitBtn" onclick="generatePdf()" disabled>Generate & Download PDF</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 6: ESCROW PROOF (escrowed only, before submission) -->
+  <section class="screen" data-screen="6">
+    <h2>Proof submission</h2>
+    <span class="badge">Escrowed</span>
+    <p class="lead">Because your files are escrowed, staff can't inspect them directly. Upload a screenshot for each item below showing your vehicle meets the guidelines. Items marked * are required.</p>
+    <div id="proofList"></div>
+    <div class="btn-row">
+      <button class="btn secondary" onclick="goTo(5)">Back</button>
+      <button class="btn" id="proofBtn" onclick="buildForm(); goTo(7)" disabled>Continue to submission</button>
+    </div>
+  </section>
+
+  <!-- SCREEN 8: SUCCESS -->
+  <section class="screen" data-screen="8" style="text-align:center;">
+    <div class="success-icon">✓</div>
+    <h2>Submission ready</h2>
+    <p class="lead">Your guide and request summary downloaded as a PDF. Submit it through the staff channel to complete your request.</p>
+    <button class="btn" onclick="resetAll()">Start a new request</button>
+  </section>
+
+</div>
+
+<div class="info-modal" id="infoModal" onclick="if(event.target===this) closeInfo()">
+  <div class="info-card">
+    <div class="info-head"><h2 id="infoTitle"></h2><button class="btn-sm" onclick="closeInfo()">Close</button></div>
+    <div id="infoBody"></div>
+  </div>
+</div>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()"><img id="lightboxImg" alt=""></div>
+
+<div id="toast"></div>
+
+<script>
+// Vehicle categories — purely for request categorization, does NOT filter which classes are available.
+const TYPES = {
+  civilian: { label: "Civilian Vehicle", desc: "Everyday vehicles for the general public.", classSuffix: { Commercial: "(6x6)" } },
+  club:     { label: "Club Vehicle", desc: "Automotive club / enthusiast builds for sanctioned events.", classSuffix: { Commercial: "(6x6)" } },
+  police:   { label: "Police Vehicle", desc: "Law enforcement vehicles. All classes are available.",
+              // 4x4 / 6x6 police vehicles use the gang 4x4 / 6x6 handling; every other class uses the standard handling.
+              classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" } },
+  medic:    { label: "Medic Vehicle", desc: "Medical and EMS vehicles. All classes are available." },
+  gang:     { label: "Gang Vehicle", desc: "Vehicles affiliated with organized factions.",
+              // Extra text shown in braces next to a class name, for this vehicle type only.
+              classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" },
+              // Only these classes can be requested for this vehicle type; every other class is shown as unavailable.
+              // Remove this line (or add class keys) to open more classes up.
+              availableClasses: ["OffRoad", "Commercial", "Helicopters"] }
+};
+
+// Master class list — the full real FiveM/GTA vehicleClass enum (23 classes). Shared across all categories above.
+// Handling data lives in HANDLING_META below, not here.
+const CLASSES = {
+  Compacts:       {tag:"Entry-level city cars"},
+  Sedans:         {tag:"Standard daily drivers"},
+  SUVs:           {tag:"Family / utility vehicles"},
+  Coupes:         {tag:"Two-door performance-leaning"},
+  Muscle:         {tag:"Classic high-power performance"},
+  SportsClassics: {tag:"Vintage performance styling"},
+  Sports:         {tag:"Modern performance vehicles"},
+  Super:          {tag:"Top-tier supercar performance"},
+  Motorcycles:    {tag:"Two-wheeled vehicles"},
+  OffRoad:        {tag:"Off-road capable trucks/utility"},
+  Industrial:     {tag:"Heavy industrial/construction vehicles"},
+  Utility:        {tag:"Small utility/maintenance vehicles"},
+  Vans:           {tag:"Cargo and passenger vans"},
+  Cycles:         {tag:"Pedal-powered bicycles"},
+  Boats:          {tag:"Watercraft"},
+  Helicopters:    {tag:"Rotary-wing aircraft"},
+  Planes:         {tag:"Fixed-wing aircraft"},
+  Service:        {tag:"Taxis, buses, and other service vehicles"},
+  Emergency:      {tag:"Police, medical, and fire-response vehicles"},
+  Military:       {tag:"Armed forces / combat vehicles"},
+  Commercial:     {tag:"Large commercial trucks/trailers"},
+  Trains:         {tag:"Rail vehicles"},
+  OpenWheel:      {tag:"Formula-style open-wheel racers"},
+};
+
+// Fill in a real URL per guideline section (previews, tutorials, examples). "#" = not set yet.
+const GUIDE_LINKS = {
+  lore: "#",
+  optimization: "#",
+  collision: "#",
+  functionality: "#",
+  meta: "#",
+  hierarchy: "#",
+  appearance: "#"
+};
+
+// Standard handling.meta for civilian and club vehicles — used for every 4-wheel and 6-wheel class below.
+// Gang vehicles keep their own per-class files in HANDLING_META.
+const WHEELED_CLASSES = ["Compacts","Sedans","SUVs","Coupes","Muscle","SportsClassics","Sports","Super","OffRoad","Industrial","Utility","Vans","Service","Emergency","Military","Commercial","OpenWheel"];
+const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
+<CHandlingDataMgr>
+  <HandlingData>
+     <Item type="CHandlingData">
+      <handlingName>x</handlingName> <!--recommended to adjust min-max values based on class-->
+      <fMass value="1500" /> <!--max-->
+      <fDownforceModifier value="1" /> <!--max-->
+      <fInitialDragCoeff value="5.7" /> <!--top speed limited to 220 km/hr-->
+      <fPercentSubmerged value="85" />
+      <vecCentreOfMassOffset x="0" y="0.0" z="0" />
+      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <fDriveBiasFront value="0" />
+      <nInitialDriveGears value="6" /> <!--max-->
+      <fInitialDriveForce value="0.2" /> <!--max-->
+      <fDriveInertia value="1" /> <!--max-->
+      <fClutchChangeRateScaleUpShift value="2" />
+      <fClutchChangeRateScaleDownShift value="2" />
+      <fInitialDriveMaxFlatVel value="150" />
+      <fBrakeForce value="0.75" /> <!--max-->
+      <fBrakeBiasFront value="0.5" />
+      <fHandBrakeForce value="0.75" /> <!--max-->
+      <fSteeringLock value="35.0" /> <!--max-->
+      <fTractionCurveMax value="3.3" /> <!--max-->
+      <fTractionCurveMin value="3.3" /> <!--max-->
+      <fTractionCurveLateral value="22.5" /> 
+      <fTractionSpringDeltaMax value="0.15" /> <!--fixed-->
+      <fLowSpeedTractionLossMult value="1.2" /> <!--min-->
+      <fCamberStiffnesss value="0.00" /> <!--fixed-->
+      <fTractionBiasFront value="0.5" />
+      <fTractionLossMult value="1.2" /> <!--min-->
+      <fSuspensionForce value="2.5" />
+      <fSuspensionCompDamp value="2.1" />
+      <fSuspensionReboundDamp value="2.1" />
+      <fSuspensionUpperLimit value="0.12" />
+      <fSuspensionLowerLimit value="-0.12" />
+      <fSuspensionRaise value="0" />
+      <fSuspensionBiasFront value="0.5" />
+      <fAntiRollBarForce value="1" /> <!--max-->
+      <fAntiRollBarBiasFront value="0.5" />
+      <fRollCentreHeightFront value="0.3" />
+      <fRollCentreHeightRear value="0.3" />
+      <fCollisionDamageMult value="1.5" /> <!--min-->
+      <fWeaponDamageMult value="1.5" /> <!--min-->
+      <fDeformationDamageMult value="0" /> <!--min-->
+      <fEngineDamageMult value="1.5" /> <!--min-->
+      <fPetrolTankVolume value="60" /> <!--max-->
+      <fOilVolume value="6" /> <!--max-->
+      <fSeatOffsetDistX value="0" />
+      <fSeatOffsetDistY value="0" />
+      <fSeatOffsetDistZ value="0" />
+      <nMonetaryValue value="50000" /> <!--fixed-->
+      <strModelFlags>440010</strModelFlags> <!--fixed-->
+      <strHandlingFlags>800008</strHandlingFlags> <!--fixed-->
+      <strDamageFlags>0</strDamageFlags> <!--fixed-->
+      <AIHandling>AVERAGE</AIHandling> <!--fixed-->
+      <SubHandlingData>
+        <Item type="NULL" />
+        <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+</HandlingData>
+</CHandlingDataMgr>`;
+// Civilian / club 6x6 (Commercial class): standard handling with steering lock 40 and traction curve max/min 4.
+const HANDLING_META_STANDARD_6X6 = HANDLING_META_STANDARD
+  .replace('<fSteeringLock value="35.0" />','<fSteeringLock value="40.0" />')
+  .replace('<fTractionCurveMax value="3.3" />','<fTractionCurveMax value="4" />')
+  .replace('<fTractionCurveMin value="3.3" />','<fTractionCurveMin value="4" />');
+// Medic vehicles: standard handling with the top speed limit raised to 250 km/h (drag coefficient is free as long as top speed stays within the limit).
+const HANDLING_META_MEDIC = HANDLING_META_STANDARD.replace('top speed limited to 220 km/hr','top speed limited to 250 km/hr');
+// Police (all other classes): standard handling with suspension upper limit max 0.2 and lower limit min -0.2, like gang / police 4x4 and 6x6.
+const HANDLING_META_POLICE = HANDLING_META_STANDARD
+  .replace('<fSuspensionUpperLimit value="0.12" />','<fSuspensionUpperLimit value="0.2" /> <!--max-->')
+  .replace('<fSuspensionLowerLimit value="-0.12" />','<fSuspensionLowerLimit value="-0.2" /> <!--min-->');
+function getMeta(type, cls){
+  if(type === 'medic' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_MEDIC;
+  if((type === 'civilian' || type === 'club') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
+  if(type === 'police' && (cls === 'OffRoad' || cls === 'Commercial')) return HANDLING_META[cls]; // same as gang 4x4 / 6x6
+  if(type === 'police' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_POLICE;
+  if(type !== 'gang' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_STANDARD;
+  return HANDLING_META[cls];
+}
+
+// handling.meta text per class (paste the real XML between the backticks).
+// Example:  Compacts: `<Item type="CHandlingData">...</Item>`,
+// Classes left out show a "coming soon" note instead.
+const HANDLING_META = {
+  OffRoad: `<?xml version="1.0" encoding="UTF-8"?>
+
+<CHandlingDataMgr>
+  <HandlingData>
+    <Item type="CHandlingData">
+      <handlingName>xgv_xgang_4x4</handlingName>
+      <fMass value="1800" /> <!--fixed-->
+      <fDownforceModifier value="3" /> <!--max-->
+      <fInitialDragCoeff value="5" /> <!--top speed limited to 250 km/h-->
+      <fPercentSubmerged value="85" /> <!--fixed-->
+      <vecCentreOfMassOffset x="0" y="0" z="0" />
+      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <fDriveBiasFront value="0.5" />
+      <nInitialDriveGears value="6" /> <!--max-->
+      <fInitialDriveForce value="0.3" /> <!--fixed-->
+      <fDriveInertia value="1" /> <!--fixed-->
+      <fClutchChangeRateScaleUpShift value="2" />
+      <fClutchChangeRateScaleDownShift value="2" />
+      <fInitialDriveMaxFlatVel value="150" />
+      <fBrakeForce value="2.5" /> <!--fixed-->
+      <fBrakeBiasFront value="0.5" />
+      <fHandBrakeForce value="1" /> <!--fixed-->
+      <fSteeringLock value="35" /> <!--max-->
+      <fTractionCurveMax value="3.5" /> <!--max-->
+      <fTractionCurveMin value="3.5" /> <!--max-->
+      <fTractionCurveLateral value="22.5"/> <!--fixed-->
+      <fTractionSpringDeltaMax value="0.15" /> <!--fixed-->
+      <fLowSpeedTractionLossMult value="0.8" /> <!--min-->
+      <fCamberStiffnesss value="0" /> <!--fixed-->
+      <fTractionBiasFront value="0.5" />
+      <fTractionLossMult value="1" /> <!--min-->
+      <fSuspensionForce value="2.5" />
+      <fSuspensionCompDamp value="1.5" />
+      <fSuspensionReboundDamp value="1.5" />
+      <fSuspensionUpperLimit value="0.2" /> <!--max-->
+      <fSuspensionLowerLimit value="-0.2" /> <!--min-->
+      <fSuspensionRaise value="0" />
+      <fSuspensionBiasFront value="0.5" />
+      <fAntiRollBarForce value="1" /> <!--max-->
+      <fAntiRollBarBiasFront value="0.5" />
+      <fRollCentreHeightFront value="0.5" />
+      <fRollCentreHeightRear value="0.5" />
+      <fCollisionDamageMult value="1.25" /> <!--fixed-->
+      <fWeaponDamageMult value="1.25" /> <!--fixed-->
+      <fDeformationDamageMult value="0" /> <!--fixed-->
+      <fEngineDamageMult value="1.25" /> <!--fixed-->
+      <fPetrolTankVolume value="60" /> <!--fixed-->
+      <fOilVolume value="6" /> <!--fixed-->
+      <fSeatOffsetDistX value="0" />
+      <fSeatOffsetDistY value="0" />
+      <fSeatOffsetDistZ value="0" />
+      <nMonetaryValue value="50000" /> <!--fixed-->
+      <strModelFlags>440010</strModelFlags> <!--fixed-->
+      <strHandlingFlags>800008</strHandlingFlags> <!--fixed-->
+      <strDamageFlags>0</strDamageFlags> <!--fixed-->
+      <AIHandling>AVERAGE</AIHandling> <!--fixed-->
+      <SubHandlingData>
+        <Item type="NULL" />
+        <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+  </HandlingData>
+</CHandlingDataMgr>`,
+  Commercial: `<?xml version="1.0" encoding="UTF-8"?>
+
+<CHandlingDataMgr>
+  <HandlingData>
+    <Item type="CHandlingData">
+      <handlingName>xgv_xgang_6x6</handlingName>
+      <fMass value="2000" /> <!--fixed-->
+      <fDownforceModifier value="3" /> <!--max-->
+      <fInitialDragCoeff value="5" /> <!--top speed limited to 230 km/h-->
+      <fPercentSubmerged value="85" /> <!--fixed-->
+      <vecCentreOfMassOffset x="0" y="0" z="0" />
+      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <fDriveBiasFront value="0.5" />
+      <nInitialDriveGears value="6" /> <!--max-->
+      <fInitialDriveForce value="0.3" /> <!--fixed-->
+      <fDriveInertia value="1" /> <!--fixed-->
+      <fClutchChangeRateScaleUpShift value="2" />
+      <fClutchChangeRateScaleDownShift value="2" />
+      <fInitialDriveMaxFlatVel value="150" />
+      <fBrakeForce value="2.5" /> <!--fixed-->
+      <fBrakeBiasFront value="0.5" />
+      <fHandBrakeForce value="1" /> <!--fixed-->
+      <fSteeringLock value="40" /> <!--max-->
+      <fTractionCurveMax value="4.5" /> <!--max-->
+      <fTractionCurveMin value="4.5" /> <!--max-->
+      <fTractionCurveLateral value="22.5"/> <!--fixed-->
+      <fTractionSpringDeltaMax value="0.15" /> <!--fixed-->
+      <fLowSpeedTractionLossMult value="0.8" /> <!--min-->
+      <fCamberStiffnesss value="0" /> <!--fixed-->
+      <fTractionBiasFront value="0.5" />
+      <fTractionLossMult value="0.8" /> <!--min-->
+      <fSuspensionForce value="2.5" />
+      <fSuspensionCompDamp value="1.5" />
+      <fSuspensionReboundDamp value="1.5" />
+      <fSuspensionUpperLimit value="0.2" /> <!--max-->
+      <fSuspensionLowerLimit value="-0.2" /> <!--min-->
+      <fSuspensionRaise value="0" />
+      <fSuspensionBiasFront value="0.5" />
+      <fAntiRollBarForce value="1" /> <!--max-->
+      <fAntiRollBarBiasFront value="0.5" />
+      <fRollCentreHeightFront value="0.5" />
+      <fRollCentreHeightRear value="0.5" />
+      <fCollisionDamageMult value="1" /> <!--fixed-->
+      <fWeaponDamageMult value="1" /> <!--fixed-->
+      <fDeformationDamageMult value="0" /> <!--fixed-->
+      <fEngineDamageMult value="1" /> <!--fixed-->
+      <fPetrolTankVolume value="80" /> <!--fixed-->
+      <fOilVolume value="8" /> <!--fixed-->
+      <fSeatOffsetDistX value="0" />
+      <fSeatOffsetDistY value="0" />
+      <fSeatOffsetDistZ value="0" />
+      <nMonetaryValue value="50000" /> <!--fixed-->
+      <strModelFlags>440010</strModelFlags> <!--fixed-->
+      <strHandlingFlags>800008</strHandlingFlags> <!--fixed-->
+      <strDamageFlags>0</strDamageFlags> <!--fixed-->
+      <AIHandling>AVERAGE</AIHandling> <!--fixed-->
+      <SubHandlingData>
+        <Item type="NULL" />
+        <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+  </HandlingData>
+</CHandlingDataMgr>`,
+};
+
+// Submission types. Escrowed files can't be opened by staff, so they need proof screenshots.
+const SUBMISSION = {
+  nonescrowed: { label: "Non-escrowed", desc: "Your files are unprotected and staff can open and inspect them directly." },
+  escrowed:    { label: "Escrowed", available: false, // set to true (or remove) to re-enable escrowed submissions
+                 desc: "Your files are protected so staff can't open them. You'll upload proof screenshots (collision, polygon count, etc.) to show the vehicle meets the guidelines." }
+};
+
+// Proof screenshots required for escrowed submissions. Edit this list to add/remove items.
+// required:false makes an item optional.
+const PROOFS = [
+  { key:'collision', label:'Collision screenshot', hint:'Collision view showing flat, straight surfaces at impact areas and low-LOD collision as a low detailed duplicate of the chassis collision.' },
+  { key:'polygons',  label:'Polygon count screenshot', hint:'Total polygon count of the model (maximum 400,000).' },
+  { key:'lods',      label:'LODs screenshot', hint:'L0, L1, L2 and L3 present, each optimized for its distance.' },
+  { key:'filesize',  label:'File size screenshot', hint:'Sizes of the .yft and .ytd files (maximum 32 MiB each).' },
+  { key:'materials',  label:'Material & texture usage screenshot', hint:'Materials and textures used by the vehicle, showing no unnecessary or unused entries.' },
+  { key:'hierarchy', label:'Hierarchy & nodes screenshot', hint:"Bone/node hierarchy following Rockstar's structure." },
+  { key:'extra',     label:'Additional proof (optional)', hint:'Anything else staff should see.', required:false }
+];
+
+let state = { type:null, cls:null, sub:null, refs:{}, proofs:{} };
+
+// Display name for a class, e.g. "Off Road (4x4)" under Gang Vehicle.
+function classLabel(key, typeKey){
+  const base = key.replace(/([a-z])([A-Z])/g,'$1 $2');
+  const suffix = typeKey && TYPES[typeKey] && TYPES[typeKey].classSuffix && TYPES[typeKey].classSuffix[key];
+  return suffix ? `${base} ${suffix}` : base;
+}
+
+// "More info" content per guideline section. Sections listed here open an in-page
+// preview (text + screenshots + optional links). Add more keys the same way
+// (lore, optimization, collision, functionality, meta, hierarchy, appearance).
+// Put image files in the images/ folder and reference them by relative path.
+const GUIDE_INFO = {
+  lore: {
+    "title": "Lore-friendliness — signature parts to change",
+    "intro": "All real-world badges and branding must be removed. Beyond that, if your design is based on a real brand, at least 3 of that brand's signature features must be changed (for example lights, grille and interior), using the brands listed below as a reference (each brand lists at least 3 signature features). Change each one meaningfully: different proportions, a different motif, a different count or pattern. Keep the general design category (for example, a vertical-slat grille) but not the exact signature. That is the difference between homage and copy.",
+    "groups": [
+      {
+        "heading": "Ultra-luxury",
+        "rows": [
+          {
+            "brand": "Rolls-Royce",
+            "items": [
+              "Grille: Pantheon grille — tall, narrow, rounded top corners, vertical slats",
+              "Lights: split headlight, thin LED strip above a round lamp",
+              "Other: Spirit of Ecstasy hood ornament, coach (suicide) doors"
+            ]
+          },
+          {
+            "brand": "Bentley",
+            "items": [
+              "Grille: matrix mesh with a bold vertical center bar",
+              "Lights: quad round/oval headlights",
+              "Other: diamond-quilted interior stitching"
+            ]
+          },
+          {
+            "brand": "Bugatti",
+            "items": [
+              "Grille: horseshoe-shaped opening",
+              "Lights: X-shaped taillight cluster",
+              "Other: central spine line down hood/roof/trunk"
+            ]
+          },
+          {
+            "brand": "Maserati",
+            "items": [
+              "Grille: oval grille with vertical slats",
+              "Other: boomerang-shaped C-pillar vent",
+              "Other: three side vents on the front fender (Quattroporte-style)"
+            ]
+          },
+          {
+            "brand": "Aston Martin",
+            "items": [
+              "Grille: wide trapezoidal vane grille",
+              "Other: side strake gills behind the front wheel",
+              "Other: swan-wing (upward-angled) doors"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Luxury / premium",
+        "rows": [
+          {
+            "brand": "Mercedes-Benz",
+            "items": [
+              "Grille: diamond-block pattern (sport) or vertical slats (classic); star-pattern grille on EVs",
+              "Lights: eyebrow LED DRL shape; star-shaped light clusters",
+              "Other: three-pointed star placement"
+            ]
+          },
+          {
+            "brand": "BMW",
+            "items": [
+              "Grille: twin kidney grille",
+              "Lights: angel-eye ring DRLs",
+              "Other: Hofmeister kink (C-pillar notch)"
+            ]
+          },
+          {
+            "brand": "Audi",
+            "items": [
+              "Grille: singleframe hexagonal grille",
+              "Lights: angular LED DRL strips, sequential turn signals",
+              "Interior: Virtual Cockpit full-digital instrument display"
+            ]
+          },
+          {
+            "brand": "Lexus",
+            "items": [
+              "Grille: spindle grille — aggressive hourglass shape",
+              "Lights: arrow-head DRL signature",
+              "Lights: full-width rear light bar (recent models)"
+            ]
+          },
+          {
+            "brand": "Genesis",
+            "items": [
+              "Grille: crest grille — two parallel horizontal lines",
+              "Lights: two-line split lighting (quad lamps divided into thin bars)",
+              "Other: G-Matrix grille texture"
+            ]
+          },
+          {
+            "brand": "Cadillac",
+            "items": [
+              "Grille: vertical slat theme",
+              "Lights: vertical LED signature, headlight and taillight",
+              "Other: tailfin-inspired vertical rear end (historic fins)"
+            ]
+          },
+          {
+            "brand": "Lincoln",
+            "items": [
+              "Grille: horizontal split-wing chrome bar",
+              "Lights: full-width horizontal light bar",
+              "Other: coach doors on special editions"
+            ]
+          },
+          {
+            "brand": "Jaguar",
+            "items": [
+              "Grille: mesh grille with chrome surround",
+              "Lights: J-blade LED DRL shape",
+              "Other: pronounced rear haunches over the wheels"
+            ]
+          },
+          {
+            "brand": "Land Rover / Range Rover",
+            "items": [
+              "Grille: minimal horizontal slats",
+              "Lights: split (upper/lower) taillight",
+              "Other: floating roofline, clamshell hood"
+            ]
+          },
+          {
+            "brand": "Volvo",
+            "items": [
+              "Grille: vertical slat layout",
+              "Lights: Thor's Hammer LED DRL shape",
+              "Lights: tall vertical taillights running up the rear pillar"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Performance / sports",
+        "rows": [
+          {
+            "brand": "Ferrari",
+            "items": [
+              "Grille: oval/triangular opening",
+              "Lights: dual round taillights (model-dependent)",
+              "Interior: steering-wheel-mounted manettino dial and start button"
+            ]
+          },
+          {
+            "brand": "Lamborghini",
+            "items": [
+              "Grille: hexagonal theme throughout",
+              "Lights: Y-shaped headlight/taillight motif",
+              "Other: hexagonal air intakes"
+            ]
+          },
+          {
+            "brand": "Porsche",
+            "items": [
+              "Grille: minimal/no traditional grille on the 911",
+              "Lights: round frog-eye headlights; full-width horizontal light bar taillight",
+              "Other: whale-tail spoiler (Turbo)"
+            ]
+          },
+          {
+            "brand": "McLaren",
+            "items": [
+              "Grille: low, wide opening",
+              "Lights: curved eye-socket LED DRL",
+              "Other: dihedral (upward-swinging) doors"
+            ]
+          },
+          {
+            "brand": "Alfa Romeo",
+            "items": [
+              "Grille: triangular scudetto shield shape",
+              "Lights: 3+3 LED headlight signature (Giulia/Stelvio)",
+              "Interior: deep-set twin round gauge cluster ('telescope' style)"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Mainstream / volume",
+        "rows": [
+          {
+            "brand": "Ford (Mustang)",
+            "items": [
+              "Lights: three-bar taillight signature",
+              "Grille: low, wide trapezoid shark-nose grille",
+              "Other: sculpted side scoop behind the doors"
+            ]
+          },
+          {
+            "brand": "Dodge",
+            "items": [
+              "Grille: crosshair grille (historic)",
+              "Lights: full-width racetrack LED taillight (modern Charger/Challenger)",
+              "Other: power-bulge hood with hood scoops (Challenger)"
+            ]
+          },
+          {
+            "brand": "Jeep",
+            "items": [
+              "Grille: seven-slot grille",
+              "Other: trapezoidal wheel arches",
+              "Lights: round headlights (Wrangler)"
+            ]
+          },
+          {
+            "brand": "Chevrolet",
+            "items": [
+              "Grille: bowtie-centered split grille",
+              "Lights: split/quad taillight theme (Corvette)",
+              "Interior: dual-cockpit layout with wraparound console (Corvette)"
+            ]
+          },
+          {
+            "brand": "Mitsubishi",
+            "items": [
+              "Grille: Dynamic Shield layered front fascia",
+              "Lights: split headlight arrangement with upper DRL strip and lower main lamps",
+              "Other: bonnet air vent (Lancer Evolution heritage)"
+            ]
+          },
+          {
+            "brand": "Hyundai",
+            "items": [
+              "Grille: parametric jewel-pattern grille texture",
+              "Lights: parametric pixel lamp signature (Ioniq 5/6)",
+              "Lights: daytime running lights hidden inside the grille (Tucson, Elantra)"
+            ]
+          },
+          {
+            "brand": "Kia",
+            "items": [
+              "Grille: tiger-nose grille shape",
+              "Lights: boomerang-shaped headlight/taillight signature",
+              "Lights: star-map LED signature (EV6/EV9)"
+            ]
+          },
+          {
+            "brand": "Mazda",
+            "items": [
+              "Lights: C-shaped through-taillight with matching DRL",
+              "Grille: wide signature-wing grille flowing into the headlights",
+              "Interior: minimal driver-focused dash with rotary commander knob"
+            ]
+          },
+          {
+            "brand": "Pontiac (historic)",
+            "items": [
+              "Grille: split grille",
+              "Lights: hidden pop-up headlights (Firebird/Trans Am)",
+              "Other: shaker hood scoop (Trans Am)"
+            ]
+          }
+        ]
+      },
+      {
+        "heading": "Electric-era note",
+        "note": "Lighting signature is now the main brand identifier, especially on EVs that don't need a traditional grille (for example, a minimal/no grille with a full-width light bar front and rear). For any EV-styled vehicle, the light shape is the single most important thing to alter."
+      }
+    ],
+    "links": []
+  },
+  collision: {
+    title: "Collision — examples",
+    intro: "Reference screenshots of a correct collision setup. Collision is built from simple, box-like shapes that follow the vehicle mesh, and the Low LOD collision is a low detailed duplicate of the chassis collision. Tap an image to enlarge it.",
+    groups: [
+      { heading: "Chassis collision (chassis.col)", note: "Box-like collision following the body mesh.", images: [
+        { src: "images/collision/chassis-left.png",  caption: "chassis.col — left view" },
+        { src: "images/collision/chassis-front.png", caption: "chassis.col — front view" },
+        { src: "images/collision/chassis-back.png",  caption: "chassis.col — back view" },
+        { src: "images/collision/chassis-top.png",   caption: "chassis.col — top view" }
+      ]},
+      { heading: "Low LOD collision (chassis_lowlod.col)", note: "A low detailed duplicate of the chassis collision.", images: [
+        { src: "images/collision/chassis-lowlod.png", caption: "chassis_lowlod.col — left view" }
+      ]},
+      { heading: "Body parts", images: [
+        { src: "images/collision/bonnet.png", caption: "bonnet.col — top view" },
+        { src: "images/collision/boot.png",   caption: "boot — front view" },
+        { src: "images/collision/door.png",   caption: "door_dside_r.col" }
+      ]},
+      { heading: "Wheels & other", images: [
+        { src: "images/collision/wheel-lf-col.png",   caption: "wheel_lf.col" },
+        { src: "images/collision/wheel-lf-child.png", caption: "wheel_lf.child" },
+        { src: "images/collision/chassis-dummy.png",  caption: "chassis_dummy.col — left view" }
+      ]}
+    ],
+    links: [] // e.g. [{ label: "Collision tutorial", url: "https://..." }]
+  },
+  optimization: {
+    title: "Optimization — examples",
+    intro: "Reference screenshots showing how to check your vehicle against the optimization limits: maximum polygon count 400,000, and a maximum of 32 MiB per .yft and .ytd. Tap an image to enlarge it.",
+    groups: [
+      { heading: "Polygon count", note: "The model viewer shows the total polygons and vertices. The total must stay under 400,000 polygons.", images: [
+        { src: "images/optimization/polygon-count.png", caption: "Model viewer — polygon and vertex count" }
+      ]},
+      { heading: "File size (.yft / .ytd)", note: "The FiveM console reports the memory each asset uses when the resource loads, including the _hi.yft. Each .yft and .ytd must stay within 32 MiB.", images: [
+        { src: "images/optimization/asset-memory.png", caption: "FiveM console — .yft, .ytd and _hi.yft memory usage" }
+      ]}
+    ],
+    links: []
+  }
+};
+
+function openInfo(key){
+  const info = GUIDE_INFO[key];
+  if(!info) return;
+  document.getElementById('infoTitle').textContent = info.title || 'More info';
+  const body = document.getElementById('infoBody');
+  body.innerHTML = '';
+  if(info.intro){
+    const p = document.createElement('p'); p.className = 'info-intro'; p.textContent = info.intro; body.appendChild(p);
+  }
+  (info.groups || []).forEach(g=>{
+    const d = document.createElement('div'); d.className = 'info-group';
+    const h = document.createElement('h3'); h.textContent = g.heading; d.appendChild(h);
+    if(g.note){ const n = document.createElement('p'); n.className = 'info-intro'; n.textContent = g.note; d.appendChild(n); }
+    (g.rows || []).forEach(r=>{
+      const row = document.createElement('div'); row.className = 'brand-row';
+      const b = document.createElement('b'); b.textContent = r.brand; row.appendChild(b);
+      const ul = document.createElement('ul');
+      r.items.forEach(t=>{ const li = document.createElement('li'); li.textContent = t; ul.appendChild(li); });
+      row.appendChild(ul); d.appendChild(row);
+    });
+    (g.images || []).forEach(im=>{
+      const f = document.createElement('figure'); f.className = 'info-fig'; f.style.margin = '12px 0 0';
+      const img = document.createElement('img'); img.src = im.src; img.alt = im.caption; img.loading = 'lazy';
+      img.onclick = ()=>openLightbox(im.src);
+      const c = document.createElement('figcaption'); c.textContent = im.caption;
+      f.appendChild(img); f.appendChild(c); d.appendChild(f);
+    });
+    body.appendChild(d);
+  });
+  if((info.links || []).length){
+    const box = document.createElement('div'); box.className = 'info-links';
+    info.links.forEach(l=>{
+      const a = document.createElement('a'); a.href = l.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = l.label + ' ↗';
+      box.appendChild(a);
+    });
+    body.appendChild(box);
+  }
+  const m = document.getElementById('infoModal');
+  m.classList.add('show'); m.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+}
+function closeInfo(){
+  document.getElementById('infoModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+function openLightbox(src){
+  document.getElementById('lightboxImg').src = src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox(){ document.getElementById('lightbox').classList.remove('show'); }
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+  if(document.getElementById('lightbox').classList.contains('show')) closeLightbox(); else closeInfo();
+});
+
+// Wire each guideline section's "More info" link.
+// Priority: in-page GUIDE_INFO preview > external URL in GUIDE_LINKS > disabled "(soon)".
+function wireGuideLinks(){
+  Object.keys(GUIDE_LINKS).forEach(key=>{
+    const a = document.getElementById(`link-${key}`);
+    if(!a) return;
+    const url = GUIDE_LINKS[key];
+    if(GUIDE_INFO[key]){
+      a.removeAttribute('target'); a.href = '#';
+      a.onclick = e=>{ e.preventDefault(); openInfo(key); };
+    } else if(!url || url === '#'){
+      a.classList.add('disabled');
+      a.textContent = 'More info (soon)';
+      a.removeAttribute('href');
+    } else {
+      a.href = url;
+    }
+  });
+}
+
+function goTo(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('show'));
+  document.querySelector(`.screen[data-screen="${n}"]`).classList.add('show');
+  const prog = document.getElementById('progress');
+  prog.innerHTML = '';
+  for(let i=0;i<=8;i++){
+    const d = document.createElement('span');
+    if(i<=n) d.className='active';
+    prog.appendChild(d);
+  }
+  window.scrollTo(0,0);
+}
+
+function buildTypeGrid(){
+  const grid = document.getElementById('typeGrid');
+  grid.innerHTML = '';
+  Object.entries(TYPES).forEach(([key,val])=>{
+    const c = document.createElement('div');
+    c.className='card';
+    c.innerHTML = `<h3>${val.label}</h3><p>${val.desc}</p>`;
+    c.onclick = ()=>{ state.type=key; buildClassGrid(); goTo(3); };
+    grid.appendChild(c);
+  });
+}
+
+function buildClassGrid(){
+  const typeSpec = TYPES[state.type], typeLabel = typeSpec.label;
+  const allowed = typeSpec.availableClasses; // undefined = every class is available
+  const names = allowed ? allowed.map(k => classLabel(k, state.type)) : [];
+  document.getElementById('classIntro').textContent = allowed
+    ? `Only ${names.slice(0,-1).join(', ')} and ${names[names.length-1]} are currently available for a ${typeLabel.toLowerCase()} request. All other classes are unavailable for now.`
+    : `All FiveM handling classes are available for a ${typeLabel.toLowerCase()} request — pick the one that matches your build.`;
+  const grid = document.getElementById('classGrid');
+  grid.innerHTML = '';
+  let entries = Object.entries(CLASSES);
+  if(allowed) entries = allowed.filter(k=>CLASSES[k]).map(k=>[k,CLASSES[k]]).concat(entries.filter(([k])=>!allowed.includes(k))); // available first, in the listed order
+  entries.forEach(([key,spec])=>{
+    const c = document.createElement('div');
+    const off = allowed && !allowed.includes(key);
+    c.className = 'card' + (off ? ' disabled' : '');
+    c.innerHTML = `<h3>${classLabel(key, state.type)}</h3><p>${spec.tag}</p>` + (off ? '<span class="na">Currently unavailable</span>' : '');
+    if(!off) c.onclick = ()=>{ state.cls=key; buildHandling(); goTo(4); };
+    grid.appendChild(c);
+  });
+}
+
+function buildHandling(){
+  const typeLabel = TYPES[state.type].label;
+  document.getElementById('handSummary').textContent = `${typeLabel} — ${classLabel(state.cls, state.type)}`;
+  const meta = getMeta(state.type, state.cls);
+  document.getElementById('metaBox').style.display = meta ? 'block' : 'none';
+  document.getElementById('metaBox').textContent = meta || '';
+  document.getElementById('copyMetaBtn').style.display = meta ? 'inline-block' : 'none';
+  document.getElementById('metaPending').style.display = meta ? 'none' : 'block';
+}
+
+async function copyMeta(){
+  try{ await navigator.clipboard.writeText(getMeta(state.type, state.cls) || ''); showToast('handling.meta copied'); }
+  catch(e){ showToast('Could not copy — select the text and copy manually.'); }
+}
+
+function buildSubGrid(){
+  const grid = document.getElementById('subGrid');
+  grid.innerHTML = '';
+  Object.entries(SUBMISSION).forEach(([key,val])=>{
+    const c = document.createElement('div');
+    const off = val.available === false;
+    c.className = 'card' + (off ? ' disabled' : '');
+    c.innerHTML = `<h3>${val.label}</h3><p>${val.desc}</p>` + (off ? '<span class="na">Currently unavailable</span>' : '');
+    if(!off){
+      c.onclick = ()=>{ state.sub = key; if(key === 'escrowed'){ buildProof(); goTo(6); } else { buildForm(); goTo(7); } };
+    }
+    grid.appendChild(c);
+  });
+}
+
+function buildForm(){
+  const typeLabel = TYPES[state.type].label;
+  const subLabel = state.sub ? SUBMISSION[state.sub].label : '';
+  document.getElementById('selSummary').textContent = `${typeLabel} — ${classLabel(state.cls, state.type)}${subLabel ? ' · ' + subLabel : ''}`;
+  checkReady();
+}
+
+function backFromForm(){
+  goTo(state.sub === 'escrowed' ? 6 : 5);
+}
+
+// Shrink screenshots so the PDF stays a reasonable size.
+function compressImage(dataUrl, maxDim){
+  maxDim = maxDim || 1600;
+  return new Promise(res=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const sc = Math.min(1, maxDim / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width*sc); c.height = Math.round(img.height*sc);
+      const g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0,0,c.width,c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      res(c.toDataURL('image/jpeg', 0.85));
+    };
+    img.onerror = ()=>res(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function buildProof(){
+  const wrap = document.getElementById('proofList');
+  wrap.innerHTML = '';
+  PROOFS.forEach(item=>{
+    const req = item.required !== false;
+    const d = document.createElement('div');
+    d.className = 'proof-item';
+    d.innerHTML = `<label>${item.label} ${req ? '<span class="req">*</span>' : ''}</label>
+      <div class="proof-hint">${item.hint}</div>
+      <div class="upload-box small"><div class="pprompt">Tap to upload screenshot</div><img class="pprev" style="display:none;"></div>
+      <input type="file" accept="image/*" style="display:none;">`;
+    wrap.appendChild(d);
+    const box = d.querySelector('.upload-box'), inp = d.querySelector('input'),
+          prev = d.querySelector('img'), prompt = d.querySelector('.pprompt');
+    const show = ()=>{
+      if(state.proofs[item.key]){
+        prev.src = state.proofs[item.key]; prev.style.display = 'block';
+        prompt.style.display = 'none'; box.classList.add('has-img');
+      }
+    };
+    show();
+    box.onclick = ()=>inp.click();
+    inp.onchange = e=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = async ev=>{
+        state.proofs[item.key] = await compressImage(ev.target.result);
+        show(); checkProofReady();
+      };
+      r.readAsDataURL(f);
+    };
+  });
+  checkProofReady();
+}
+
+function checkProofReady(){
+  document.getElementById('proofBtn').disabled = !PROOFS.every(p=>p.required === false || state.proofs[p.key]);
+}
+
+
+// Orthographic reference views required on the submission form.
+const REF_VIEWS = [
+  { key:'front', label:'Front view' },
+  { key:'back',  label:'Back view' },
+  { key:'left',  label:'Left side view' },
+  { key:'top',   label:'Top view' }
+];
+
+function buildRefGrid(){
+  const grid = document.getElementById('refGrid');
+  grid.innerHTML = '';
+  REF_VIEWS.forEach(v=>{
+    const d = document.createElement('div');
+    d.className = 'ref-slot';
+    d.innerHTML = `<label>${v.label} <span class="req">*</span></label>
+      <div class="upload-box small"><div class="pprompt">Tap to upload</div><img class="pprev" style="display:none;"></div>
+      <input type="file" accept="image/*" style="display:none;">`;
+    grid.appendChild(d);
+    const box = d.querySelector('.upload-box'), inp = d.querySelector('input'),
+          prev = d.querySelector('img'), prompt = d.querySelector('.pprompt');
+    const show = ()=>{
+      if(state.refs[v.key]){
+        prev.src = state.refs[v.key]; prev.style.display = 'block';
+        prompt.style.display = 'none'; box.classList.add('has-img');
+      }
+    };
+    show();
+    box.onclick = ()=>inp.click();
+    inp.onchange = e=>{
+      const f = e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = async ev=>{
+        state.refs[v.key] = await compressImage(ev.target.result);
+        show(); checkReady();
+      };
+      r.readAsDataURL(f);
+    };
+  });
+}
+
+function checkReady(){
+  const name = document.getElementById('vName').value.trim();
+  document.getElementById('submitBtn').disabled = !(name && REF_VIEWS.every(v=>state.refs[v.key]));
+}
+
+document.getElementById('vName').addEventListener('input', checkReady);
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+}
+
+async function generatePdf(){
+  try{
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const typeLabel = TYPES[state.type].label;
+    const name = document.getElementById('vName').value.trim();
+    let y = 20;
+
+    // PDF contains only the vehicle class and the reference images.
+    doc.setTextColor(0,0,0); doc.setFont('helvetica','bold'); doc.setFontSize(18);
+    doc.text(`Vehicle Class: ${classLabel(state.cls, state.type)}`, 14, y); y+=8;
+    doc.setFont('helvetica','normal'); doc.setFontSize(12); doc.setTextColor(90,90,90);
+    doc.text(typeLabel, 14, y); y+=12;
+    doc.setTextColor(0,0,0);
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(12);
+    doc.text('Reference Images', 14, y); y+=8;
+    const cellW = 88, cellH = 78, gap = 8;
+    REF_VIEWS.forEach((v, i)=>{
+      const img = state.refs[v.key];
+      if(!img) return;
+      const x = 14 + (i % 2) * (cellW + gap);
+      const cy = y + Math.floor(i / 2) * (cellH + 16);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10);
+      doc.text(v.label, x, cy);
+      const pr = doc.getImageProperties(img);
+      const sc = Math.min(cellW / pr.width, cellH / pr.height);
+      doc.addImage(img, 'JPEG', x, cy + 3, pr.width * sc, pr.height * sc);
+    });
+    y += 2 * (cellH + 16);
+
+    if(state.sub === 'escrowed'){
+      doc.addPage(); y = 20;
+      doc.setTextColor(0,0,0); doc.setFont('helvetica','bold'); doc.setFontSize(14);
+      doc.text('Proof of Compliance (Escrowed)', 14, y); y+=9;
+      for(const item of PROOFS){
+        const img = state.proofs[item.key];
+        if(!img) continue;
+        const pr = doc.getImageProperties(img);
+        const sc = Math.min(180/pr.width, 105/pr.height);
+        const w = pr.width*sc, h = pr.height*sc;
+        if(y + h + 14 > 285){ doc.addPage(); y = 20; }
+        doc.setFont('helvetica','bold'); doc.setFontSize(11);
+        doc.text(item.label.replace(' (optional)',''), 14, y); y+=5;
+        doc.addImage(img, 'JPEG', 14, y, w, h); y += h + 10;
+      }
+    }
+
+    const blob = doc.output('blob');
+    const filename = (name || 'vehicle-request').replace(/[^a-z0-9\-_]+/gi,'_') + '.pdf';
+
+    // Standard browser download — works on any normal web host (no Claude-specific APIs).
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 2000);
+
+    goTo(8);
+  }catch(e){
+    showToast('Something went wrong generating the PDF.');
+  }
+}
+
+function resetAll(){
+  state = { type:null, cls:null, sub:null, refs:{}, proofs:{} };
+  document.getElementById('vName').value='';
+  document.getElementById('vInspo').value='';
+  document.getElementById('vDesc').value='';
+  buildRefGrid();
+  document.getElementById('submitBtn').disabled = true;
+  goTo(0);
+}
+
+buildTypeGrid();
+buildSubGrid();
+buildRefGrid();
+wireGuideLinks();
+goTo(0);
+</script>
+</body>
+</html>
