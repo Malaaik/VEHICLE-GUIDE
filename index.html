@@ -487,8 +487,8 @@ const HANDLING_META = {
       <fDownforceModifier value="3" /> <!--max-->
       <fInitialDragCoeff value="5" /> <!--top speed limited to 250 km/h-->
       <fPercentSubmerged value="85" /> <!--fixed-->
-      <vecCentreOfMassOffset x="0" y="0" z="0" />
-      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <vecCentreOfMassOffset x="0" y="0" z="0" /> <!--unrealistic anti-flipping not allowed-->
+      <vecInertiaMultiplier x="1" y="1" z="1" /> <!--unrealistic anti-flipping not allowed-->
       <fDriveBiasFront value="0.5" />
       <nInitialDriveGears value="6" /> <!--max-->
       <fInitialDriveForce value="0.3" /> <!--fixed-->
@@ -517,8 +517,8 @@ const HANDLING_META = {
       <fSuspensionBiasFront value="0.5" />
       <fAntiRollBarForce value="1" /> <!--max-->
       <fAntiRollBarBiasFront value="0.5" />
-      <fRollCentreHeightFront value="0.5" />
-      <fRollCentreHeightRear value="0.5" />
+      <fRollCentreHeightFront value="0.5" /> <!--input minimal value for not rolling onroad-->
+      <fRollCentreHeightRear value="0.5" /> <!--input minimal value for not rolling onroad-->
       <fCollisionDamageMult value="1.25" /> <!--fixed-->
       <fWeaponDamageMult value="1.25" /> <!--fixed-->
       <fDeformationDamageMult value="0" /> <!--fixed-->
@@ -551,8 +551,8 @@ const HANDLING_META = {
       <fDownforceModifier value="3" /> <!--max-->
       <fInitialDragCoeff value="5" /> <!--top speed limited to 230 km/h-->
       <fPercentSubmerged value="85" /> <!--fixed-->
-      <vecCentreOfMassOffset x="0" y="0" z="0" />
-      <vecInertiaMultiplier x="1" y="1" z="1" />
+      <vecCentreOfMassOffset x="0" y="0" z="0" /> <!--unrealistic anti-flipping not allowed-->
+      <vecInertiaMultiplier x="1" y="1" z="1" /> <!--unrealistic anti-flipping not allowed-->
       <fDriveBiasFront value="0.5" />
       <nInitialDriveGears value="6" /> <!--max-->
       <fInitialDriveForce value="0.3" /> <!--fixed-->
@@ -581,8 +581,8 @@ const HANDLING_META = {
       <fSuspensionBiasFront value="0.5" />
       <fAntiRollBarForce value="1" /> <!--max-->
       <fAntiRollBarBiasFront value="0.5" />
-      <fRollCentreHeightFront value="0.5" />
-      <fRollCentreHeightRear value="0.5" />
+      <fRollCentreHeightFront value="0.5" /> <!--input minimal value for not rolling onroad-->
+      <fRollCentreHeightRear value="0.5" /> <!--input minimal value for not rolling onroad-->
       <fCollisionDamageMult value="1" /> <!--fixed-->
       <fWeaponDamageMult value="1" /> <!--fixed-->
       <fDeformationDamageMult value="0" /> <!--fixed-->
