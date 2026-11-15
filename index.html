@@ -203,7 +203,7 @@ textarea{min-height:90px; resize:vertical;}
       <ul>
         <li>Vehicles must follow Rockstar's hierarchy structure.</li>
         <li>All required nodes and bones must be correctly positioned.</li>
-        <li>Flying and submersible vehicles are not permitted.</li>
+        <li>Flying and submersible vehicles are not permitted, except helicopters for gang vehicles (using the server-provided heli handling).</li>
       </ul>
     </div>
 
@@ -339,7 +339,7 @@ const TYPES = {
   police:   { label: "Police Vehicle", desc: "Law enforcement vehicles. All classes are available.",
               // 4x4 / 6x6 police vehicles use the gang 4x4 / 6x6 handling; every other class uses the standard handling.
               classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" } },
-  medic:    { label: "Medic Vehicle", desc: "Medical and EMS vehicles. All classes are available." },
+  medic:    { label: "Medic Vehicle", desc: "Medical and EMS vehicles. All classes are available.", classSuffix: { Commercial: "(6x6)" } },
   gang:     { label: "Gang Vehicle", desc: "Vehicles affiliated with organized factions.",
               // Extra text shown in braces next to a class name, for this vehicle type only.
               classSuffix: { OffRoad: "(4x4)", Commercial: "(6x6)" },
@@ -347,6 +347,9 @@ const TYPES = {
               // Remove this line (or add class keys) to open more classes up.
               availableClasses: ["OffRoad", "Commercial", "Helicopters"] }
 };
+
+// Classes that can't be requested by any vehicle type (police / medic already cover emergency vehicles).
+const DISABLED_CLASSES = ["Emergency", "Service", "Trains", "Industrial", "Utility", "Planes", "Military"];
 
 // Master class list — the full real FiveM/GTA vehicleClass enum (23 classes). Shared across all categories above.
 // Handling data lives in HANDLING_META below, not here.
@@ -389,7 +392,7 @@ const GUIDE_LINKS = {
 
 // Standard handling.meta for civilian and club vehicles — used for every 4-wheel and 6-wheel class below.
 // Gang vehicles keep their own per-class files in HANDLING_META.
-const WHEELED_CLASSES = ["Compacts","Sedans","SUVs","Coupes","Muscle","SportsClassics","Sports","Super","OffRoad","Industrial","Utility","Vans","Service","Emergency","Military","Commercial","OpenWheel"];
+const WHEELED_CLASSES = ["Compacts","Sedans","SUVs","Coupes","Muscle","SportsClassics","Sports","Super","OffRoad","Vans","Commercial","OpenWheel"];
 const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
 <CHandlingDataMgr>
   <HandlingData>
@@ -397,7 +400,7 @@ const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
       <handlingName>x</handlingName> <!--recommended to adjust min-max values based on class-->
       <fMass value="1500" /> <!--max-->
       <fDownforceModifier value="1" /> <!--max-->
-      <fInitialDragCoeff value="5.7" /> <!--top speed limited to 220 km/hr-->
+      <fInitialDragCoeff value="5.7" /> <!--top speed limited to 250 km/hr-->
       <fPercentSubmerged value="85" />
       <vecCentreOfMassOffset x="0" y="0.0" z="0" />
       <vecInertiaMultiplier x="1" y="1" z="1" />
@@ -453,20 +456,21 @@ const HANDLING_META_STANDARD = `<?xml version="1.0" encoding="UTF-8"?>
     </Item>
 </HandlingData>
 </CHandlingDataMgr>`;
-// Civilian / club 6x6 (Commercial class): standard handling with steering lock 40 and traction curve max/min 4.
+// Civilian / club / medic 6x6 (Commercial class): standard handling with top speed limited to 230 km/h, steering lock 40 and traction curve max/min 4.
 const HANDLING_META_STANDARD_6X6 = HANDLING_META_STANDARD
+  .replace('top speed limited to 250 km/hr','top speed limited to 230 km/hr')
   .replace('<fSteeringLock value="35.0" />','<fSteeringLock value="40.0" />')
   .replace('<fTractionCurveMax value="3.3" />','<fTractionCurveMax value="4" />')
   .replace('<fTractionCurveMin value="3.3" />','<fTractionCurveMin value="4" />');
-// Medic vehicles: standard handling with the top speed limit raised to 250 km/h (drag coefficient is free as long as top speed stays within the limit).
-const HANDLING_META_MEDIC = HANDLING_META_STANDARD.replace('top speed limited to 220 km/hr','top speed limited to 250 km/hr');
-// Police (all other classes): standard handling with suspension upper limit max 0.2 and lower limit min -0.2, like gang / police 4x4 and 6x6.
+// Medic vehicles: same as standard (top speed limited to 250 km/h; drag coefficient is free as long as top speed stays within the limit).
+const HANDLING_META_MEDIC = HANDLING_META_STANDARD;
+// Police (all other classes): standard handling (top speed limited to 250 km/h) with suspension upper limit max 0.2 and lower limit min -0.2, like gang / police 4x4 and 6x6.
 const HANDLING_META_POLICE = HANDLING_META_STANDARD
   .replace('<fSuspensionUpperLimit value="0.12" />','<fSuspensionUpperLimit value="0.2" /> <!--max-->')
   .replace('<fSuspensionLowerLimit value="-0.12" />','<fSuspensionLowerLimit value="-0.2" /> <!--min-->');
 function getMeta(type, cls){
+  if((type === 'civilian' || type === 'club' || type === 'medic') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
   if(type === 'medic' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_MEDIC;
-  if((type === 'civilian' || type === 'club') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
   if(type === 'police' && (cls === 'OffRoad' || cls === 'Commercial')) return HANDLING_META[cls]; // same as gang 4x4 / 6x6
   if(type === 'police' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_POLICE;
   if(type !== 'gang' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_STANDARD;
@@ -600,6 +604,103 @@ const HANDLING_META = {
       <SubHandlingData>
         <Item type="NULL" />
         <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+  </HandlingData>
+</CHandlingDataMgr>`,
+  // Gang helicopters. Every CHandlingData value is fixed; the flying sub-handling has its own fixed / max / min fields.
+  Helicopters: `<?xml version="1.0" encoding="UTF-8"?>
+
+<CHandlingDataMgr>
+  <HandlingData>
+    <Item type="CHandlingData"><!--all values fixed-->
+      <handlingName>heli</handlingName>
+      <fMass value="8000.000000" />
+      <fInitialDragCoeff value="5.000000" />
+      <fPercentSubmerged value="75.000000" />
+      <vecCentreOfMassOffset x="0.000000" y="0.000000" z="0.000000" />
+      <vecInertiaMultiplier x="1.000000" y="1.000000" z="1.000000" />
+      <fDriveBiasFront value="0.000000" />
+      <nInitialDriveGears value="1" />
+      <fInitialDriveForce value="0.500000" />
+      <fDriveInertia value="1.000000" />
+      <fClutchChangeRateScaleUpShift value="1.300000" />
+      <fClutchChangeRateScaleDownShift value="1.300000" />
+      <fInitialDriveMaxFlatVel value="190.000000" />
+      <fBrakeForce value="0.400000" />
+      <fBrakeBiasFront value="0.600000" />
+      <fHandBrakeForce value="0.700000" />
+      <fSteeringLock value="35.000000" />
+      <fTractionCurveMax value="1.600000" />
+      <fTractionCurveMin value="1.200000" />
+      <fTractionCurveLateral value="20.000000" />
+      <fTractionSpringDeltaMax value="0.050000" />
+      <fLowSpeedTractionLossMult value="0.000000" />
+      <fCamberStiffnesss value="0.000000" />
+      <fTractionBiasFront value="0.500000" />
+      <fTractionLossMult value="0.000000" />
+      <fSuspensionForce value="2.500000" />
+      <fSuspensionCompDamp value="2.100000" />
+      <fSuspensionReboundDamp value="2.100000" />
+      <fSuspensionUpperLimit value="0.700000" />
+      <fSuspensionLowerLimit value="-0.100000" />
+      <fSuspensionRaise value="0.000000" />
+      <fSuspensionBiasFront value="0.350000" />
+      <fAntiRollBarForce value="0.000000" />
+      <fAntiRollBarBiasFront value="0.000000" />
+      <fRollCentreHeightFront value="0.000000" />
+      <fRollCentreHeightRear value="0.000000" />
+      <fCollisionDamageMult value="1.000000" />
+      <fWeaponDamageMult value="1.00000" />
+      <fDeformationDamageMult value="0.00000" />
+      <fEngineDamageMult value="1.500000" />
+      <fPetrolTankVolume value="100.000000" />
+      <fOilVolume value="8.000000" />
+      <fSeatOffsetDistX value="0.000000" />
+      <fSeatOffsetDistY value="0.000000" />
+      <fSeatOffsetDistZ value="0.400000" />
+      <nMonetaryValue value="52000" />
+      <strModelFlags>2044000</strModelFlags>
+      <strHandlingFlags>401000</strHandlingFlags>
+      <strDamageFlags>20</strDamageFlags>
+      <AIHandling>AVERAGE</AIHandling>
+      <SubHandlingData>
+        <Item type="CFlyingHandlingData">
+          <fThrust value="1.000000" /> <!--max -->
+          <fThrustFallOff value="0.033000" /> <!--fixed-->
+          <fThrustVectoring value="0.400000" /> <!--fixed-->
+          <fYawMult value="-2.000000" /> <!--max -3, keep negative-->
+          <fYawStabilise value="0.004000" /> <!--max-->
+          <fSideSlipMult value="0.004000" /> <!--fixed-->
+          <fRollMult value="2.00000" /> <!--max-->
+          <fRollStabilise value="0.020000" /> <!--max-->
+          <fPitchMult value="2.00000" /> <!--max-->
+          <fPitchStabilise value="0.002000" /> <!--max-->
+          <fFormLiftMult value="1.000000" /> <!--fixed-->
+          <fAttackLiftMult value="2.900000" /> <!--fixed-->
+          <fAttackDiveMult value="2.900000" /> <!--fixed-->
+          <fGearDownDragV value="0.100000" /> <!--fixed-->
+          <fGearDownLiftMult value="1.000000" /> <!--fixed-->
+          <fWindMult value="0.000000" /> <!--fixed-->
+          <fMoveRes value="0.0250000" /> <!--min-->
+          <vecTurnRes x="1.000000" y="1.000000" z="1.000000" /> <!--max 1 on each axis-->
+          <vecSpeedRes x="0.300000" y="0.20000" z="0.400000" /> <!--min 0.3 on x, min 0.2 on y, min 0.4 on z-->
+          <fGearDoorFrontOpen value="65.000000" /> <!--fixed-->
+          <fGearDoorRearOpen value="65.000000" /> <!--fixed-->
+          <fGearDoorRearOpen2 value="65.000000" /> <!--fixed-->
+          <fGearDoorRearMOpen value="65.000000" /> <!--fixed-->
+          <fTurublenceMagnitudeMax value="0.000000" /> <!--fixed-->
+          <fTurublenceForceMulti value="0.000000" /> <!--fixed-->
+          <fTurublenceRollTorqueMulti value="0.000000" /> <!--fixed-->
+          <fTurublencePitchTorqueMulti value="0.000000" /> <!--fixed-->
+          <fBodyDamageControlEffectMult value="0.10000" /> <!--min-->
+          <fInputSensitivityForDifficulty value="0.280000" /> <!--fixed-->
+          <fOnGroundYawBoostSpeedPeak value="1.000000" /> <!--fixed-->
+          <fOnGroundYawBoostSpeedCap value="1.000000" /> <!--fixed-->
+          <fEngineOffGlideMulti value="1.50000" /> <!--max-->
+          <handlingType>HANDLING_TYPE_FLYING</handlingType> <!--fixed-->
+        </Item>
         <Item type="NULL" />
       </SubHandlingData>
     </Item>
@@ -1050,14 +1151,16 @@ function buildClassGrid(){
   const names = allowed ? allowed.map(k => classLabel(k, state.type)) : [];
   document.getElementById('classIntro').textContent = allowed
     ? `Only ${names.slice(0,-1).join(', ')} and ${names[names.length-1]} are currently available for a ${typeLabel.toLowerCase()} request. All other classes are unavailable for now.`
-    : `All FiveM handling classes are available for a ${typeLabel.toLowerCase()} request — pick the one that matches your build.`;
+    : `All FiveM handling classes except Emergency, Service, Trains, Industrial, Utility, Planes and Military are available for a ${typeLabel.toLowerCase()} request — pick the one that matches your build.`;
   const grid = document.getElementById('classGrid');
   grid.innerHTML = '';
   let entries = Object.entries(CLASSES);
   if(allowed) entries = allowed.filter(k=>CLASSES[k]).map(k=>[k,CLASSES[k]]).concat(entries.filter(([k])=>!allowed.includes(k))); // available first, in the listed order
+  const isOff = k => DISABLED_CLASSES.includes(k) || (allowed && !allowed.includes(k));
+  entries = entries.filter(([k])=>!isOff(k)).concat(entries.filter(([k])=>isOff(k))); // unavailable classes last
   entries.forEach(([key,spec])=>{
     const c = document.createElement('div');
-    const off = allowed && !allowed.includes(key);
+    const off = isOff(key);
     c.className = 'card' + (off ? ' disabled' : '');
     c.innerHTML = `<h3>${classLabel(key, state.type)}</h3><p>${spec.tag}</p>` + (off ? '<span class="na">Currently unavailable</span>' : '');
     if(!off) c.onclick = ()=>{ state.cls=key; buildHandling(); goTo(4); };
