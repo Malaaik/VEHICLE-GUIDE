@@ -468,7 +468,94 @@ const HANDLING_META_MEDIC = HANDLING_META_STANDARD;
 const HANDLING_META_POLICE = HANDLING_META_STANDARD
   .replace('<fSuspensionUpperLimit value="0.12" />','<fSuspensionUpperLimit value="0.2" /> <!--max-->')
   .replace('<fSuspensionLowerLimit value="-0.12" />','<fSuspensionLowerLimit value="-0.2" /> <!--min-->');
+// Motorcycles (every vehicle type): server bike handling, CBikeHandlingData sub-handling included.
+const HANDLING_META_BIKE = `<?xml version="1.0" encoding="UTF-8"?>
+
+<CHandlingDataMgr>
+  <HandlingData>
+    <Item type="CHandlingData">
+      <handlingName>bike</handlingName> <!--recommended to adjust min-max values based on class-->
+      <fMass value="500" /> <!--max-->
+      <fDownforceModifier value="0" /> <!--max-->
+      <fInitialDragCoeff value="5" /> <!--top speed limited to 250 km/hr-->
+      <fPercentSubmerged value="85" />
+      <vecCentreOfMassOffset x="0" y="0.0" z="0" /> 
+      <vecInertiaMultiplier x="1.0" y="1.0" z="1.0" /> 
+      <fDriveBiasFront value="0.0" />
+      <nInitialDriveGears value="6" /> <!--max-->
+      <fInitialDriveForce value="0.2" /> <!--max-->
+      <fDriveInertia value="1" /> <!--max-->
+      <fClutchChangeRateScaleUpShift value="4" />
+      <fClutchChangeRateScaleDownShift value="4" />
+      <fInitialDriveMaxFlatVel value="190" />
+      <fBrakeForce value="0.75" /> <!--max-->
+      <fBrakeBiasFront value="0.5" />
+      <fHandBrakeForce value="0.75" /> <!--max-->
+      <fSteeringLock value="25.0" /> <!--max-->
+      <fTractionCurveMax value="3" /> <!--max-->
+      <fTractionCurveMin value="3" /> <!--max-->
+      <fTractionCurveLateral value="20.5" />
+      <fTractionSpringDeltaMax value="0.15" /> <!--fixed-->
+      <fLowSpeedTractionLossMult value="1.2" /> <!--min-->
+      <fCamberStiffnesss value="0.00" /> <!--fixed-->
+      <fTractionBiasFront value="0.5" />
+      <fTractionLossMult value="1.2" /> <!--min-->
+      <fSuspensionForce value="7.5" />
+      <fSuspensionCompDamp value="2.5" />
+      <fSuspensionReboundDamp value="5.0" />
+      <fSuspensionUpperLimit value="0.1" />
+      <fSuspensionLowerLimit value="-0.1" />
+      <fSuspensionRaise value="0" />
+      <fSuspensionBiasFront value="0.5" />
+      <fAntiRollBarForce value="0" /> 
+      <fAntiRollBarBiasFront value="0.0" /> 
+      <fRollCentreHeightFront value="0.3" />
+      <fRollCentreHeightRear value="0.3" />
+      <fCollisionDamageMult value="1.5" /> <!--min-->
+      <fWeaponDamageMult value="1.5" /> <!--min-->
+      <fDeformationDamageMult value="0" /> <!--min-->
+      <fEngineDamageMult value="1.5" /> <!--min-->
+      <fPetrolTankVolume value="60" /> <!--max-->
+      <fOilVolume value="6" /> <!--max-->
+      <fSeatOffsetDistX value="0" />
+      <fSeatOffsetDistY value="0" />
+      <fSeatOffsetDistZ value="0" />
+      <nMonetaryValue value="50000" /> <!--fixed-->
+      <strModelFlags>440010</strModelFlags> <!--fixed-->
+      <strHandlingFlags>800008</strHandlingFlags> <!--fixed-->
+      <strDamageFlags>0</strDamageFlags> <!--fixed-->
+      <AIHandling>AVERAGE</AIHandling> <!--fixed-->
+      <SubHandlingData>
+        <Item type="CBikeHandlingData">
+          <fLeanFwdCOMMult value="0.000000" /> <!--fixed-->
+          <fLeanFwdForceMult value="13.50000" /> <!--max-->
+          <fLeanBakCOMMult value="0.000000" /> <!--fixed-->
+          <fLeanBakForceMult value="13.5000000" /> <!--max-->
+          <fMaxBankAngle value="90.000000" /> <!--max-->
+          <fFullAnimAngle value="60.000000" /> <!--max-->
+          <fDesLeanReturnFrac value="0.300000" />
+          <fStickLeanMult value="1.000000" /> <!--max-->
+          <fBrakingStabilityMult value="-1.000000" />
+          <fInAirSteerMult value="-6.500000" /> <!--max -6.5, keep negative-->
+          <fWheelieBalancePoint value="13.000000" />
+          <fStoppieBalancePoint value="-13.000000" />
+          <fWheelieSteerMult value="-30.000000" /> <!--fixed-->
+          <fRearBalanceMult value="60.000000" />
+          <fFrontBalanceMult value="85.000000" />
+          <fBikeGroundSideFrictionMult value="1.500000" /> <!--max-->
+          <fBikeWheelGroundSideFrictionMult value="1.000000" /> <!--max-->
+          <fBikeOnStandLeanAngle value="-15.000000" />
+          <fBikeOnStandSteerAngle value="0.300000" />
+          <fJumpForce value="0.000000" /> <!--fixed-->
+        </Item>
+        <Item type="NULL" />
+        <Item type="NULL" />
+      </SubHandlingData>
+    </Item>
+  </HandlingData>
+</CHandlingDataMgr>`;
 function getMeta(type, cls){
+  if(cls === 'Motorcycles') return HANDLING_META_BIKE;
   if((type === 'civilian' || type === 'club' || type === 'medic') && cls === 'Commercial') return HANDLING_META_STANDARD_6X6;
   if(type === 'medic' && WHEELED_CLASSES.includes(cls)) return HANDLING_META_MEDIC;
   if(type === 'police' && (cls === 'OffRoad' || cls === 'Commercial')) return HANDLING_META[cls]; // same as gang 4x4 / 6x6
